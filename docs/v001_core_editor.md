@@ -14,7 +14,7 @@ Establish a robust text editor that allows users to type Markdown and see "Live 
     -   Lists (`-`, `1.`)
 
 ## Key Technical Decisions
--   **Architecture**: Strict CommonMark compliance (Block -> Inline).
+-   **Architecture**: Strict CommonMark compliance (Block -> Inline). See [lexer.md](../lexer.md) for architectural details.
 -   **Data Structure**: Custom "Editor-First" AST.
 -   **State**: Incremental-friendly Line Parser.
 
