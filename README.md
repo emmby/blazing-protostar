@@ -81,3 +81,8 @@ To achieve the requirements with minimal dependencies, we will rely on a customi
 - **Acceptance Criteria**:
     -   [ ] Read-only mode prevents keyboard input.
     -   [ ] Editor can be embedded as a widget in other apps.
+
+## Future Roadmap (Post-v1.0)
+-   **Full Theme Customizability**:
+    -   Developers consuming this package must be able to customize ALL visual styling decisions (colors, text styles, syntax visibility opacity) via a theme or configuration object.
+    -   *Rationale*: Ensures the editor can adapt to any design system.
