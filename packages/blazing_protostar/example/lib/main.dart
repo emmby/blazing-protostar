@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:blazing_protostar/src/features/editor/presentation/markdown_editor_screen.dart';
+import 'package:blazing_protostar/blazing_protostar.dart';
 
 void main() {
   runApp(const MyApp());
