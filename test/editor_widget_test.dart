@@ -160,4 +160,68 @@ void main() {
     expect(controller.selection.extentOffset, 10);
     expect(controller.selection.textInside(controller.text), 'text');
   });
+
+  testWidgets('Pasting multiline markdown renders all styles', (tester) async {
+    final controller = MarkdownTextEditingController();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: TextField(controller: controller)),
+      ),
+    );
+
+    // Simulate Paste
+    const complexMarkdown =
+        '# Header\n'
+        'Text with **bold** and [link](url)';
+    controller.text = complexMarkdown;
+    await tester.pump();
+
+    final span = controller.buildTextSpan(
+      context: tester.element(find.byType(TextField)),
+      withComposing: false,
+    );
+
+    // Verify tree structure
+    // Document -> [Header, Gap(\n), Paragraph]
+    expect(span.children!.length, 3);
+
+    final headerSpan = span.children![0] as TextSpan;
+    expect(
+      (headerSpan.children![0] as TextSpan).style?.fontWeight,
+      FontWeight.bold,
+    ); // Level 1 header
+    expect((headerSpan.children![0] as TextSpan).text, '# Header');
+
+    final paragraphSpan = span.children![2] as TextSpan;
+    // Newline + Text + Bold + Text + Link
+    // Wait, our parser treats Paragraphs as children of Document.
+    // The first child of Paragraph is often the leading newline or text.
+
+    // Total components in paragraph:
+    // 1. "\nText with " (Gap after header)
+    // 2. Bold (children: **, bold, **)
+    // 3. " and "
+    // 4. Link (children: [, link, ], (, url, ))
+
+    final pChildren = paragraphSpan.children!;
+    expect(pChildren.any((s) => s.toPlainText().contains('bold')), isTrue);
+    expect(pChildren.any((s) => s.toPlainText().contains('link')), isTrue);
+
+    // Find the BoldNode (which is a TextSpan wrapping children)
+    final boldSpan =
+        pChildren.firstWhere((s) => s.toPlainText() == '**bold**') as TextSpan;
+    expect(
+      (boldSpan.children![1] as TextSpan).style?.fontWeight,
+      FontWeight.bold,
+    );
+
+    // Find the LinkNode
+    final linkSpan =
+        pChildren.firstWhere((s) => s.toPlainText().contains('[link]'))
+            as TextSpan;
+    expect(
+      (linkSpan.children![1] as TextSpan).style?.color,
+      Colors.blue,
+    ); // link color
+  });
 }
