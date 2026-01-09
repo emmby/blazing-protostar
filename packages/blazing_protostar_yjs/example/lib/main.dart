@@ -1,10 +1,6 @@
-import 'dart:js_interop';
 import 'package:flutter/material.dart';
 import 'package:blazing_protostar/blazing_protostar.dart';
 import 'package:blazing_protostar_yjs/blazing_protostar_yjs.dart';
-
-@JS('YjsBridge')
-external JSObject? get yjsBridge;
 
 void main() {
   runApp(const MyApp());
@@ -28,11 +24,14 @@ class _MyAppState extends State<MyApp> {
 
   void _initController() {
     DocumentBackend backend;
-    if (yjsBridge != null) {
-      backend = YjsDocumentBackend(yjsBridge as YjsBridge);
-    } else {
+    try {
+      // Use the clean factory method instead of dealing with JS objects.
+      backend = YjsBackend.create();
+    } catch (e) {
       backend = InMemoryBackend(
-        initialText: 'Yjs Bridge not found. Are you running on Web?',
+        initialText:
+            'Yjs Backend initialization failed: $e\n\n'
+            'Are you running on Web and have included yjs_bridge.js in your index.html?',
       );
     }
     _controller = MarkdownTextEditingController(backend: backend);
