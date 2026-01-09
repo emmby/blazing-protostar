@@ -16,11 +16,17 @@ A simple, clean CommonMark editor designed for Flutter. This project aims to pro
         -   Can be placed as a fixed header (Top).
         -   Can be placed as a keyboard accessory or footer (Bottom).
 
-3.  **WYSIWYG Toggle**
+3.  **Collaborative Editing (Optional)**
+    -   Support for real-time collaboration via **Y.js**.
+    -   **Block-Aware Sync**: Synchronizes the document as a structured tree of blocks for robust conflict resolution.
+    -   **Presence**: Shows remote cursors and selections.
+    -   *Details*: See [crdt.md](crdt.md) for technical requirements.
+
+4.  **WYSIWYG Toggle**
     -   A toggleable mode that hides control characters while preserving styling.
     -   Allows users to see the rendered output without distraction ("Zen Mode").
 
-4.  **Read-Only Mode**
+5.  **Read-Only Mode**
     -   Disables editing capabilities.
     -   Useful for previews or displaying static content.
 
@@ -29,27 +35,18 @@ A simple, clean CommonMark editor designed for Flutter. This project aims to pro
 ### Core: Custom TextEditingController
 To achieve the requirements with minimal dependencies, we will rely on a customized `TextEditingController`.
 -   **Mechanism**: Override the `buildTextSpan` method.
+-   **Data Strategy (Block-Aware)**: 
+    -   The controller maintains a list of semantic **Blocks** (Paragraphs, Headers, etc.).
+    -   This allows for high-performance updates and perfectly aligns with CRDT/Y.js synchronization requirements.
 -   **Parsing Strategy (Lexer/Scanner)**:
-    -   We will implement a lightweight **Lexer** to scan the text and produce a tailored stream of tokens (e.g., `Header`, `Bold`, `Text`, `CodeBlock`).
-    -   **Why not Regex?**: While Regex is faster to start, it struggles with nested states (e.g., ignoring `**bold**` inside a code block). A Lexer allows us to maintain a simple state machine (`normal` -> `inCodeBlock` -> `normal`), ensuring robust handling of future complex elements.
-    -   **Design Specs**: See [lexer.md](lexer.md) for the detailed architecture and implementation plan.
--   **WYSIWYG Strategy**: When the toggle is active, we identify control characters (like `**`) and apply a style effectively hiding them (e.g., `fontSize: 0.1` or transparent color).
--   **Cursor Trade-off**: We accept that the cursor may "move blindly" over hidden characters for now.
+    -   We use a lightweight **Lexer** to scan text and produce an AST.
+    -   **Design Specs**: See [lexer.md](lexer.md) for the detailed architecture.
+-   **Collaboration Bridge**: 
+    -   Abstract `DocumentBackend` allows the editor to function as a standalone flat-string editor OR as a collaborative client by plugging in a Y.js provider.
 
-## MVP Scope (Phase 1 & 2)
-
-**Included Features:**
--   Headers (`#`, `##`, etc.)
--   Bold (`**`, `__`)
--   Italic (`*`, `_`)
--   Lists (Unordered `-`, `*` and Ordered `1.`)
--   Links (`[text](url)`)
-
-**Excluded for MVP:**
--   Blockquotes (`>`)
--   Code Blocks (```)
--   Tables
--   Images (Inline rendering)
+## Detailed Specifications
+-   [Lexer Specification](lexer.md) - Deep dive into parsing and AST strategy.
+-   [CRDT & Collaboration](crdt.md) - Requirements for Y.js integration and block-awareness.
 
 ## Implementation Phases
 
@@ -66,21 +63,26 @@ To achieve the requirements with minimal dependencies, we will rely on a customi
 - **Acceptance Criteria**:
     -   [ ] Toolbar widget created (decoupled from the editor).
     -   [ ] Editor widget accepts a toolbar builder or can be composed with the toolbar.
-    -   [ ] Support for Top (Header) and Bottom (Footer/Accessory) placement.
-    -   [ ] Buttons functioning: Bold, Italic, Header, List, Link.
 
-### Phase 3: The WYSIWYG Toggle (Masking)
+### Phase 3: Block-Aware Controller (CRDT Prep)
+*Goal: Refactor internals to support structured synchronization.*
+- **Acceptance Criteria**:
+    -   [ ] Controller refactored to manage a list of `MarkdownBlock` objects.
+    -   [ ] Backwards compatibility for single-string usage.
+    -   [ ] No regressions in typing UX.
+
+### Phase 4: Y.js Integration
+*Goal: Implement the collaborative editing bridge.*
+- **Acceptance Criteria**:
+    -   [ ] `YjsDocumentBackend` implemented.
+    -   [ ] Real-time sync between two editors.
+    -   [ ] Remote cursor rendering.
+
+### Phase 5: The WYSIWYG Toggle (Masking)
 *Goal: Implement the logic to hide control characters on demand.*
 - **Acceptance Criteria**:
     -   [ ] Toggle switch works.
     -   [ ] When enabled, `**` and `#` disappear visually but structure remains.
-    -   [ ] Styling provided by `buildTextSpan` remains active.
-
-### Phase 4: Read-Only & Polish
-*Goal: Finalize modes and ensure stability.*
-- **Acceptance Criteria**:
-    -   [ ] Read-only mode prevents keyboard input.
-    -   [ ] Editor can be embedded as a widget in other apps.
 
 ## Future Roadmap (Post-v1.0)
 -   **Full Theme Customizability**:
