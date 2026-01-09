@@ -1,0 +1,19 @@
+name: blazing_protostar_yjs
+description: "Yjs collaboration plugin for the Blazing Protostar Markdown Editor."
+version: 0.1.0
+publish_to: 'none'
+
+environment:
+  sdk: ^3.10.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  blazing_protostar:
+    path: ../blazing_protostar
+  # flutter_js: ^0.8.0 # We will add this during Phase 3 exploration
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0

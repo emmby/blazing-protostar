@@ -9,10 +9,10 @@ This document tracks the requirements and implementation phases for adding CRDT 
 ## Technical Discussion & Decisions
 
 ### [Question 1: Target Y.js Implementation]
-- **Status**: Research Required
-- **Question**: Do you intend to use a native Dart CRDT implementation (like the `y_crdt` package which uses WASM) or bridge to JavaScript?
-- **User Feedback**: Open to either, but noted previous difficulties with `y_crdt` regarding memory management (likely FFI/WASM disposal).
-- **Decision**: We will investigate `y_crdt`'s current state and memory lifecycle requirements. If friction remains high, we may explore a JS-bridge or a pure-Dart alternative.
+- **Status**: Decided (JavaScript Bridge)
+- **Decision**: **JavaScript Bridge**.
+    - **Web**: Use `dart:js_interop` to interface with the official Yjs library.
+    - **Mobile/Desktop**: Use an embedded JS engine (e.g., `flutter_js`) to run the Yjs logic. This ensures a single source of truth for CRDT math while avoiding the memory management issues of the current `y_crdt` WASM package.
 
 ### [Question 2: Sync Granularity & Structure]
 - **Status**: Decided (Structured Tree)
@@ -87,14 +87,15 @@ graph TD
     - [ ] Implement `InMemoryDocumentBackend` (default).
     - [ ] Refactor formatting actions (`applyFormat`) to use the backend instead of direct string manipulation.
 
-### Phase 3: Plugin Research & Choice
-- **Goal**: Resolve the `y_crdt` memory situation and decide between Native vs. JS Bridge.
+### Phase 3: Sidecar Research & Setup
+- **Goal**: Establish the `blazing_protostar_yjs` package and prototype the JS Bridge.
 - **Tasks**:
-    - [ ] Analyze `y_crdt` WASM/FFI disposal patterns.
-    - [ ] Create a prototype of `blazing_protostar_yjs` structure.
+    - [x] Restructure project into `packages/` monorepo.
+    - [x] Create `blazing_protostar_yjs` package stub.
+    - [ ] Prototype `YjsDocumentBackend` interfacing with a JS engine.
 - **Acceptance Criteria**:
-    - [ ] A definitive choice between pure Dart (`y_crdt`) and JS Interop is made.
-    - [ ] Memory lifecycle strategy is documented.
+    - [ ] `blazing_protostar_yjs` successfully depends on the core pkg.
+    - [ ] A basic string can be synced via a JS-backed CRDT node in a test environment.
 
 ### Phase 4: Presence & Presence UI
 - **Goal**: Synchronize cursors and render them.

@@ -30,6 +30,12 @@ A simple, clean CommonMark editor designed for Flutter. This project aims to pro
     -   Disables editing capabilities.
     -   Useful for previews or displaying static content.
 
+## Project Structure
+
+This is a monorepo containing the following packages:
+- **[blazing_protostar](packages/blazing_protostar)**: The core Markdown editor widget and logic. Lean, dependency-free core.
+- **[blazing_protostar_yjs](packages/blazing_protostar_yjs)**: The Yjs collaboration plugin. Provides Yjs-backed storage for real-time multiplayer editing.
+
 ## Technical Architecture
 
 ### Core: Custom TextEditingController
