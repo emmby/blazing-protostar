@@ -9,9 +9,10 @@ abstract class DocumentBackend extends ChangeNotifier {
   String get text;
 
   /// Updates the entire document text.
-  ///
-  /// This is typically called when the local user types in the editor.
   void updateText(String newText);
+
+  /// Updates the local user's selection in the backend for awareness.
+  void updateSelection(int anchor, int head) {}
 
   /// Closes any resources held by the backend.
   @override

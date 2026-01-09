@@ -11,6 +11,7 @@ extension type _YjsBridge._(JSObject _) implements JSObject {
   external void onUpdate(JSFunction callback);
 }
 
+/// A [DocumentBackend] implementation that syncs via Y.js BroadcastChannel.
 class YjsDocumentBackend extends DocumentBackend {
   final _YjsBridge _bridge;
 

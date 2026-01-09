@@ -9,6 +9,9 @@ class MarkdownTextEditingController extends TextEditingController {
   final MarkdownParser _parser;
   final DocumentBackend _backend;
 
+  /// Flag to prevent re-entrancy when applying remote updates.
+  bool _isApplyingRemoteUpdate = false;
+
   /// The internal list of blocks that make up the document.
   /// This is the source of truth for structured sync (CRDT).
   List<MarkdownBlock> _blocks = [];
@@ -32,13 +35,15 @@ class MarkdownTextEditingController extends TextEditingController {
   }
 
   void _onBackendChanged() {
-    // Sync text from backend to controller
+    // Sync text from backend to controller (remote update)
     if (value.text != _backend.text) {
+      _isApplyingRemoteUpdate = true;
       _blocks = _splitIntoBlocks(_backend.text);
       value = value.copyWith(
         text: _backend.text,
         // Preserve selection or handle incoming remote selection in Phase 4
       );
+      _isApplyingRemoteUpdate = false;
     }
   }
 
@@ -47,7 +52,8 @@ class MarkdownTextEditingController extends TextEditingController {
     final oldText = value.text;
     super.value = newValue;
 
-    if (newValue.text != oldText) {
+    // Only update backend if this is a LOCAL change
+    if (newValue.text != oldText && !_isApplyingRemoteUpdate) {
       _blocks = _splitIntoBlocks(newValue.text);
       _backend.updateText(newValue.text);
     }
