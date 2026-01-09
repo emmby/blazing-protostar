@@ -39,6 +39,8 @@ class AstToHtmlRenderer implements NodeVisitor<String> {
       return '<em>$content</em>';
     } else if (node is LinkNode) {
       return '<a href="${node.href}">$content</a>';
+    } else if (node is EscapeNode) {
+      return content; // Render the escaped char without the backslash
     }
 
     return content;

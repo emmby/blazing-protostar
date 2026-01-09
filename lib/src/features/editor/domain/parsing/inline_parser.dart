@@ -43,13 +43,22 @@ class InlineParser {
   }
 
   List<Node> _parseText(TextNode textNode) {
-    // Pipeline: Bold -> Italic
-    // This is valid because we only modify TextNodes.
+    // Pipeline: Escapes -> Bold -> Italic
 
-    // 1. Parse Bolds
-    final afterBold = _parseBold(textNode);
+    // 1. Parse Escapes (Priority 1: Protects chars from other parsers)
+    final afterEscapes = _parseEscapes(textNode);
 
-    // 2. Parse Italics on the result
+    // 2. Parse Bolds
+    final afterBold = <Node>[];
+    for (final node in afterEscapes) {
+      if (node is TextNode) {
+        afterBold.addAll(_parseBold(node));
+      } else {
+        afterBold.add(node);
+      }
+    }
+
+    // 3. Parse Italics
     final afterItalic = <Node>[];
     for (final node in afterBold) {
       if (node is TextNode) {
@@ -60,6 +69,60 @@ class InlineParser {
     }
 
     return afterItalic;
+  }
+
+  List<Node> _parseEscapes(TextNode textNode) {
+    final text = textNode.text;
+    final nodes = <Node>[];
+    int currentIndex = 0;
+
+    // CommonMark escapes: \ + ASCII punctuation
+    final regex = RegExp(r'\\([!-/:-@\[-`{-~])');
+    final matches = regex.allMatches(text);
+
+    for (final match in matches) {
+      if (match.start > currentIndex) {
+        nodes.add(
+          TextNode(
+            text: text.substring(currentIndex, match.start),
+            start: textNode.start + currentIndex,
+            end: textNode.start + match.start,
+          ),
+        );
+      }
+
+      final escapedChar = match.group(1)!;
+      final matchStart = match.start;
+      final matchEnd = match.end;
+
+      nodes.add(
+        EscapeNode(
+          children: [
+            TextNode(
+              text: escapedChar,
+              start: textNode.start + matchStart + 1, // Skip \
+              end: textNode.start + matchEnd,
+            ),
+          ],
+          start: textNode.start + matchStart,
+          end: textNode.start + matchEnd,
+        ),
+      );
+
+      currentIndex = match.end;
+    }
+
+    if (currentIndex < text.length) {
+      nodes.add(
+        TextNode(
+          text: text.substring(currentIndex),
+          start: textNode.start + currentIndex,
+          end: textNode.start + text.length,
+        ),
+      );
+    }
+
+    return nodes.isNotEmpty ? nodes : [textNode];
   }
 
   List<Node> _parseBold(TextNode textNode) {

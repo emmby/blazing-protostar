@@ -39,3 +39,14 @@ class LinkNode extends InlineNode {
   @override
   String get type => 'link';
 }
+
+class EscapeNode extends InlineNode {
+  EscapeNode({
+    required super.children,
+    required super.start,
+    required super.end,
+  });
+
+  @override
+  String get type => 'escape';
+}
