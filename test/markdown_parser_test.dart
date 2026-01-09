@@ -57,5 +57,23 @@ void main() {
       expect(header.children.length, 2);
       expect((header.children[1] as BoldNode).children.first, isA<TextNode>());
     });
+
+    test('Parses Link', () {
+      final doc = parser.parse('Click [here](https://example.com) now');
+
+      expect(doc.children.length, 1);
+      final p = doc.children.first as ParagraphNode;
+      expect(p.children.length, 3);
+
+      expect((p.children[0] as TextNode).text, 'Click ');
+
+      final link = p.children[1] as LinkNode;
+      expect(link.href, 'https://example.com');
+      // The content of the link text
+      expect(link.children.length, 1);
+      expect((link.children.first as TextNode).text, 'here');
+
+      expect((p.children[2] as TextNode).text, ' now');
+    });
   });
 }

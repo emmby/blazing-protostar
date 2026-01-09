@@ -58,9 +58,19 @@ class InlineParser {
       }
     }
 
-    // 3. Parse Italics
-    final afterItalic = <Node>[];
+    // 3. Parse Links
+    final afterLinks = <Node>[];
     for (final node in afterBold) {
+      if (node is TextNode) {
+        afterLinks.addAll(_parseLinks(node));
+      } else {
+        afterLinks.add(node);
+      }
+    }
+
+    // 4. Parse Italics
+    final afterItalic = <Node>[];
+    for (final node in afterLinks) {
       if (node is TextNode) {
         afterItalic.addAll(_parseItalic(node));
       } else {
@@ -69,6 +79,62 @@ class InlineParser {
     }
 
     return afterItalic;
+  }
+
+  List<Node> _parseLinks(TextNode textNode) {
+    final text = textNode.text;
+    final nodes = <Node>[];
+    int currentIndex = 0;
+
+    // Naive Link Regex: [text](url)
+    final regex = RegExp(r'\[([^\]]+)\]\(([^\)]+)\)');
+    final matches = regex.allMatches(text);
+
+    for (final match in matches) {
+      if (match.start > currentIndex) {
+        nodes.add(
+          TextNode(
+            text: text.substring(currentIndex, match.start),
+            start: textNode.start + currentIndex,
+            end: textNode.start + match.start,
+          ),
+        );
+      }
+
+      final linkText = match.group(1)!;
+      final linkUrl = match.group(2)!;
+      final matchStart = match.start;
+      final matchEnd = match.end;
+
+      nodes.add(
+        LinkNode(
+          href: linkUrl,
+          children: [
+            TextNode(
+              text: linkText,
+              start: textNode.start + matchStart + 1,
+              end: textNode.start + matchStart + 1 + linkText.length,
+            ),
+          ],
+          start: textNode.start + matchStart,
+          end: textNode.start + matchEnd,
+        ),
+      );
+
+      currentIndex = match.end;
+    }
+
+    if (currentIndex < text.length) {
+      nodes.add(
+        TextNode(
+          text: text.substring(currentIndex),
+          start: textNode.start + currentIndex,
+          end: textNode.start + text.length,
+        ),
+      );
+    }
+
+    return nodes.isNotEmpty ? nodes : [textNode];
   }
 
   List<Node> _parseEscapes(TextNode textNode) {
