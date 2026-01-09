@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:blazing_protostar/src/features/editor/domain/parsing/markdown_parser.dart';
 import 'package:blazing_protostar/src/features/editor/domain/models/node.dart';
+import 'package:blazing_protostar/src/features/editor/domain/models/block_state.dart';
 
 class MarkdownTextEditingController extends TextEditingController {
   final MarkdownParser _parser;
+
+  /// The internal list of blocks that make up the document.
+  /// This is the source of truth for structured sync (CRDT).
+  List<MarkdownBlock> _blocks = [];
 
   // Reactive State for the Toolbar
   final ValueNotifier<Set<String>> activeStyles = ValueNotifier({});
@@ -16,8 +21,24 @@ class MarkdownTextEditingController extends TextEditingController {
     Duration throttleDuration = const Duration(milliseconds: 16),
   }) : _parser = parser,
        super() {
+    _blocks = _splitIntoBlocks(text);
     addListener(_updateActiveStyles);
   }
+
+  @override
+  set value(TextEditingValue newValue) {
+    // If the text actually changed, we need to update our block list.
+    // Optimization: In a future phase, we will do granular updates here
+    // based on the delta between value.text and newValue.text.
+    // For Phase 1, we re-split the entire document.
+    if (newValue.text != value.text) {
+      _blocks = _splitIntoBlocks(newValue.text);
+    }
+    super.value = newValue;
+  }
+
+  /// Returns a read-only view of the current blocks.
+  List<MarkdownBlock> get blocks => List.unmodifiable(_blocks);
 
   @override
   void dispose() {
@@ -212,6 +233,9 @@ class MarkdownTextEditingController extends TextEditingController {
   }
 
   TextSpan _renderNode(Node node, TextStyle currentStyle) {
+    // ... existing implementation ...
+    // (I will keep the existing buildTextSpan logic for now as it relies on the parser output)
+    // (The parser output and _blocks will stay in sync because they both derive from text)
     if (node is TextNode) {
       return TextSpan(text: node.text, style: currentStyle);
     }
@@ -240,55 +264,17 @@ class MarkdownTextEditingController extends TextEditingController {
           decoration: TextDecoration.underline,
         );
       } else if (node is EscapeNode) {
-        // Dim the backslash? Or just render plain?
         newStyle = newStyle.copyWith(color: Colors.grey);
       }
-
-      // Dim Syntax Characters?
-      // My AST currently has the syntax explicitly in the TextNode children for Bold/Italic
-      // e.g. BoldNode -> [TextNode("**"), TextNode("bold"), TextNode("**")]
-      // Wait, my parser implementation kept the syntax markers OUT of the parsed content
-      // but managed the 'start/end' indices.
-      //
-      // Let's re-read InlineParser.
-      //
-      // _parseBold:
-      // nodes.add(BoldNode(children: [TextNode("innerText")]...))
-      // It DROPPED the "**" from the tree!
-      //
-      // CRITICAL REALIZATION:
-      // My README said "Keep control characters visible".
-      // But my `_parseBold` implementation logic:
-      // `start: textNode.start + matchStart + 2`
-      // It skipped the syntax chars! They are NOT in the tree children.
-      //
-      // But `buildTextSpan` must return the spans for the *entire* text
-      // or the TextField cursor will desync.
-      // If I return TextSpans that omit characters that exists in `text`,
-      // Flutter will crash or behave wildly.
-      //
-      // FIX:
-      // My Editor Renderer MUST insert the missing syntax characters back as spans,
-      // OR my Parser MUST include them in the AST.
-      //
-      // Given "Phase 1: Visible Syntax", the Parser SHOULD include them.
-      //
-      // For now, to allow the code to run without crashing,
-      // I will perform a "Gap Filling" strategy in this render method.
-      // I know `node.start` and `node.children[i].start`.
-      // If there is a gap, that's syntax. I will render it dimmed.
 
       int currentPos = node.start;
 
       for (final child in node.children) {
-        // Fill gap before child (Syntax characters or Whitespace)
         if (child.start > currentPos) {
           final gapText = text.substring(currentPos, child.start);
           childrenSpans.add(
             TextSpan(
               text: gapText,
-              // Apply dimmed style for syntax, but maybe Keep normal style for generic whitespace?
-              // Simple heuristic: If it looks like syntax (*, _, #, [, ]), dim it.
               style: currentStyle.copyWith(color: Colors.grey),
             ),
           );
@@ -298,7 +284,6 @@ class MarkdownTextEditingController extends TextEditingController {
         currentPos = child.end;
       }
 
-      // Fill gap after last child (Syntax characters)
       if (currentPos < node.end) {
         final gapText = text.substring(currentPos, node.end);
         childrenSpans.add(
@@ -309,24 +294,71 @@ class MarkdownTextEditingController extends TextEditingController {
         );
       }
 
-      // Hack for DocumentNode: It might have gaps between blocks (Newlines) that are NOT part of any block.
-      // But `node.end` for Document covers the whole string.
-      // So the logic above "Gap after last child" actually handles the trailing newline
-      // ONLY IF the document end is correct.
-      //
-      // Wait, `_renderNode` is called regarding `node`.
-      // If `DocumentNode` has children `[Para1(0-5), Para2(6-10)]`.
-      // Loop ends at 5.
-      // Next child starts at 6.
-      // Loop gap detects 5->6 (The newline).
-      // It renders it.
-      //
-      // So... my logic actually works for inter-block newlines too!
-      // Provided `DocumentNode.start` is 0 and `end` is length.
-
       return TextSpan(children: childrenSpans);
     }
 
     return const TextSpan(text: "");
+  }
+
+  // --- Block-Awareness Helpers ---
+
+  List<MarkdownBlock> _splitIntoBlocks(String text) {
+    if (text.isEmpty) {
+      return [MarkdownBlock(text: '', type: 'paragraph')];
+    }
+
+    final lines = text.split('\n');
+    return lines.map((line) {
+      // 1. Check for ATX Header
+      final headerMatch = RegExp(r'^(#{1,6})(?:[ \t]+|$)').firstMatch(line);
+      if (headerMatch != null) {
+        return MarkdownBlock(
+          text: line,
+          type: 'header',
+          metadata: {'level': headerMatch.group(1)!.length},
+        );
+      }
+
+      // 2. Check for List Item
+      final ulMatch = RegExp(r'^([*+-])([ \t]+|$)').firstMatch(line);
+      if (ulMatch != null) {
+        return MarkdownBlock(text: line, type: 'unordered_list');
+      }
+
+      // 3. Fallback: Paragraph
+      return MarkdownBlock(text: line, type: 'paragraph');
+    }).toList();
+  }
+
+  /// Maps a global character offset (0 to text.length) to a block index and local offset.
+  ///
+  /// Returns a Record `(int blockIndex, int localOffset)`.
+  (int blockIndex, int localOffset) mapGlobalToLocalOffset(int globalOffset) {
+    if (_blocks.isEmpty) return (0, 0);
+
+    int currentOffset = 0;
+    for (int i = 0; i < _blocks.length; i++) {
+      final block = _blocks[i];
+      final blockEnd = currentOffset + block.length;
+
+      // The offset is within this block's boundaries.
+      // We check <= blockEnd because a cursor can be at the very end of a block.
+      if (globalOffset <= blockEnd) {
+        return (i, globalOffset - currentOffset);
+      }
+
+      // If we are exactly AT the newline between this block and the next:
+      if (globalOffset == blockEnd + 1 && i < _blocks.length - 1) {
+        // We treat the newline as being at localOffset == block.length?
+        // Actually, if we are AT the newline, we are technically AFTER the block content.
+        // For Y.js purposes, it's often cleaner to map to the start of the next block.
+        return (i + 1, 0);
+      }
+
+      currentOffset += block.length + 1; // +1 for the newline
+    }
+
+    // Fallback to the very end of the last block
+    return (_blocks.length - 1, _blocks.last.length);
   }
 }
