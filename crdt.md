@@ -100,3 +100,14 @@ This document tracks the requirements and implementation phases for adding CRDT 
 - **Acceptance Criteria**:
     - [ ] `ShortcutManager` intercepts Cmd+Z and routes to `backend.undo()`.
     - [ ] Performance testing on 100+ blocks in a collaborative session.
+
+### Phase 6: Validation & Fuzzing (Conformance)
+- **Goal**: Ensure the editor binding is robust against race conditions and concurrent edits.
+- **Reference (JS Ecosystem)**:
+    - **y-test**: Uses a virtual network to delay/reorder messages.
+    - **Roundtrip Invariant**: Local -> Remote -> Local must be idempotent.
+    - **Fuzzing**: 1000+ random ops on two instances until convergence.
+- **Acceptance Criteria**:
+    - [ ] **Convergence Fuzzer**: A test that runs 1000+ random operations on two instances and verifies the final state matches after sync.
+    - [ ] **Cursor Stability**: Verify remote edits don't cause local cursor jumps or focus loss.
+    - [ ] **Syntax Shredding Resilience**: Verify that conflicting edits to Markdown markers (e.g., `**`) don't crash the parser.
