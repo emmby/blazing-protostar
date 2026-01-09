@@ -32,6 +32,7 @@ To achieve the requirements with minimal dependencies, we will rely on a customi
 -   **Parsing Strategy (Lexer/Scanner)**:
     -   We will implement a lightweight **Lexer** to scan the text and produce a tailored stream of tokens (e.g., `Header`, `Bold`, `Text`, `CodeBlock`).
     -   **Why not Regex?**: While Regex is faster to start, it struggles with nested states (e.g., ignoring `**bold**` inside a code block). A Lexer allows us to maintain a simple state machine (`normal` -> `inCodeBlock` -> `normal`), ensuring robust handling of future complex elements.
+    -   **Design Specs**: See [lexer.md](lexer.md) for the detailed architecture and implementation plan.
 -   **WYSIWYG Strategy**: When the toggle is active, we identify control characters (like `**`) and apply a style effectively hiding them (e.g., `fontSize: 0.1` or transparent color).
 -   **Cursor Trade-off**: We accept that the cursor may "move blindly" over hidden characters for now.
 
