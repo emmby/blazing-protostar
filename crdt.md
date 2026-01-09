@@ -54,10 +54,17 @@ This document tracks the requirements and implementation phases for adding CRDT 
     - **Rationale**: Since our editor keeps markdown syntax (e.g., `**`) visible and the Lexer uses these markers as the source of truth for styling, adding Y.js formatting attributes would create a "Dual Truth" problem. If the CRDT attributes and the text markers desync, the UI would become unpredictable.
     - **Risk Mitigation**: "Syntax shredding" (where concurrent edits break a marker pair) will be handled by the user re-typing the marker, or by future refinement of the diffing algorithm.
 
-### [Question 8: Optionality & Architecture]
-- **Status**: Decided
-- **Question**: How do we ensure users who don't need CRDT aren't burdened by its complexity?
-- **Decision**: **Bridge/Plugin Architecture**. The `MarkdownTextEditingController` will use an abstract `DocumentBackend` (or similar interface). The default backend will be a simple `String` buffer. CRDT support will be provided via a `YjsDocumentBackend` that users can optionally pass to the controller.
+- **Undo/Redo**: Intercept and Override. Map Cmd+Z to Y.js UndoManager.
+- **Package Architecture**: **Sidecar Package**. The core `blazing_protostar` package will NOT depend on Y.js. We will create a `blazing_protostar_yjs` package that provides the `YjsDocumentBackend`.
+
+## Project Structure
+```mermaid
+graph TD
+    A["blazing_protostar (Core)"] --> B["DocumentBackend (Abstract)"]
+    C["blazing_protostar_yjs (Plugin)"] --> A
+    C --> D["y_crdt / JS Bridge"]
+    C --> E["YjsDocumentBackend (Implementation)"]
+```
 
 ---
 
@@ -80,13 +87,14 @@ This document tracks the requirements and implementation phases for adding CRDT 
     - [ ] Implement `InMemoryDocumentBackend` (default).
     - [ ] Refactor formatting actions (`applyFormat`) to use the backend instead of direct string manipulation.
 
-### Phase 3: Y.js Integration (The YjsBackend)
-- **Goal**: Implement the Y.js bridge.
+### Phase 3: Plugin Research & Choice
+- **Goal**: Resolve the `y_crdt` memory situation and decide between Native vs. JS Bridge.
+- **Tasks**:
+    - [ ] Analyze `y_crdt` WASM/FFI disposal patterns.
+    - [ ] Create a prototype of `blazing_protostar_yjs` structure.
 - **Acceptance Criteria**:
-    - [ ] Research/Implement `YjsDocumentBackend` (using `y_crdt` or JS-bridge).
-    - [ ] Remote operations from `YDoc` update the Controller's blocks without losing local focus.
-    - [ ] Local operations update the `YDoc`.
-    - [ ] Verification via a hidden "Collaborative Debug View" (two editors side-by-side).
+    - [ ] A definitive choice between pure Dart (`y_crdt`) and JS Interop is made.
+    - [ ] Memory lifecycle strategy is documented.
 
 ### Phase 4: Presence & Presence UI
 - **Goal**: Synchronize cursors and render them.
