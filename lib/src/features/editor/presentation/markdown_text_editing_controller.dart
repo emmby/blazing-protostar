@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:blazing_protostar/src/features/editor/domain/parsing/markdown_parser.dart';
 import 'package:blazing_protostar/src/features/editor/domain/models/node.dart';
 import 'package:blazing_protostar/src/features/editor/domain/models/block_state.dart';
+import 'package:blazing_protostar/src/features/editor/domain/backends/document_backend.dart';
+import 'package:blazing_protostar/src/features/editor/domain/backends/in_memory_backend.dart';
 
 class MarkdownTextEditingController extends TextEditingController {
   final MarkdownParser _parser;
+  final DocumentBackend _backend;
 
   /// The internal list of blocks that make up the document.
   /// This is the source of truth for structured sync (CRDT).
@@ -16,25 +19,38 @@ class MarkdownTextEditingController extends TextEditingController {
   DocumentNode? _lastParsedDocument;
 
   MarkdownTextEditingController({
-    super.text,
+    String? text,
     MarkdownParser parser = const MarkdownParser(),
+    DocumentBackend? backend,
     Duration throttleDuration = const Duration(milliseconds: 16),
   }) : _parser = parser,
-       super() {
-    _blocks = _splitIntoBlocks(text);
+       _backend = backend ?? InMemoryBackend(initialText: text ?? ''),
+       super(text: text ?? backend?.text) {
+    _blocks = _splitIntoBlocks(_backend.text);
+    _backend.addListener(_onBackendChanged);
     addListener(_updateActiveStyles);
+  }
+
+  void _onBackendChanged() {
+    // Sync text from backend to controller
+    if (value.text != _backend.text) {
+      _blocks = _splitIntoBlocks(_backend.text);
+      value = value.copyWith(
+        text: _backend.text,
+        // Preserve selection or handle incoming remote selection in Phase 4
+      );
+    }
   }
 
   @override
   set value(TextEditingValue newValue) {
-    // If the text actually changed, we need to update our block list.
-    // Optimization: In a future phase, we will do granular updates here
-    // based on the delta between value.text and newValue.text.
-    // For Phase 1, we re-split the entire document.
-    if (newValue.text != value.text) {
-      _blocks = _splitIntoBlocks(newValue.text);
-    }
+    final oldText = value.text;
     super.value = newValue;
+
+    if (newValue.text != oldText) {
+      _blocks = _splitIntoBlocks(newValue.text);
+      _backend.updateText(newValue.text);
+    }
   }
 
   /// Returns a read-only view of the current blocks.
@@ -42,6 +58,7 @@ class MarkdownTextEditingController extends TextEditingController {
 
   @override
   void dispose() {
+    _backend.removeListener(_onBackendChanged);
     removeListener(_updateActiveStyles);
     activeStyles.dispose();
     super.dispose();
