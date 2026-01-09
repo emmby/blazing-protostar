@@ -12,10 +12,17 @@ packages:
   blazing_protostar:
     dependency: "direct main"
     description:
-      path: "../blazing_protostar"
+      path: "../../blazing_protostar"
       relative: true
     source: path
     version: "1.0.0+1"
+  blazing_protostar_yjs:
+    dependency: "direct main"
+    description:
+      path: ".."
+      relative: true
+    source: path
+    version: "0.1.0"
   boolean_selector:
     dependency: transitive
     description:
@@ -78,7 +85,7 @@ packages:
     source: sdk
     version: "0.0.0"
   flutter_js:
-    dependency: "direct main"
+    dependency: transitive
     description:
       name: flutter_js
       sha256: a04966b102967891ee4947d6e52b450676f16204876ba936e394008ca26db04b

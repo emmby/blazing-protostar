@@ -7,4 +7,6 @@ export 'src/features/editor/domain/backends/document_backend.dart';
 export 'src/features/editor/domain/backends/in_memory_backend.dart';
 export 'src/features/editor/domain/models/block_state.dart';
 
-// Add future exports here (e.g., toolbar, specialized widgets)
+export 'src/features/editor/presentation/markdown_toolbar.dart';
+
+// Add future exports here

@@ -15,7 +15,8 @@ jobs:
         package: [
           "packages/blazing_protostar",
           "packages/blazing_protostar/example",
-          "packages/blazing_protostar_yjs"
+          "packages/blazing_protostar_yjs",
+          "packages/blazing_protostar_yjs/example"
         ]
 
     steps:

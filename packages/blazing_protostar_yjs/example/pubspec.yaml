@@ -1,0 +1,23 @@
+name: blazing_protostar_yjs_example
+description: "Example app for the Yjs plugin for Blazing Protostar."
+version: 1.0.0
+publish_to: 'none'
+
+environment:
+  sdk: ^3.10.4
+
+dependencies:
+  flutter:
+    sdk: flutter
+  blazing_protostar:
+    path: ../../blazing_protostar
+  blazing_protostar_yjs:
+    path: ../
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
+  uses-material-design: true
