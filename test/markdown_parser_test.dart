@@ -1,7 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:blazing_protostar/src/features/editor/domain/parsing/markdown_parser.dart';
-import 'package:blazing_protostar/src/features/editor/domain/models/block_nodes.dart';
-import 'package:blazing_protostar/src/features/editor/domain/models/inline_nodes.dart';
 import 'package:blazing_protostar/src/features/editor/domain/models/node.dart';
 
 void main() {

@@ -70,4 +70,94 @@ void main() {
     expect((boldChildren[2] as TextSpan).text, '**');
     expect((boldChildren[2] as TextSpan).style?.color, Colors.grey);
   });
+
+  testWidgets('Controller updates activeStyles on selection change', (
+    tester,
+  ) async {
+    final controller = MarkdownTextEditingController(
+      text: 'Hello **Bold** world',
+    );
+
+    // Simulate selection change: "Hello " (index 2)
+    controller.selection = const TextSelection.collapsed(offset: 2);
+    expect(controller.activeStyles.value, isEmpty);
+
+    // Simulate selection change: "**Bold**" (index 8, inside Bold)
+    // "Hello **" is 8 chars.
+    // "Hello **B" is 9.
+    // Offset 9 should be inside Bold.
+    controller.selection = const TextSelection.collapsed(offset: 9);
+
+    // We need to trigger a build/parse first?
+    // The controller parses on buildTextSpan.
+    // In a real app, the widget calls buildTextSpan.
+    // Here we must mimic that cycle or manually force a parse if the test doesn't pump a widget.
+    //
+    // The `_updateActiveStyles` listener checks `_lastParsedDocument`.
+    // `_lastParsedDocument` is set in `buildTextSpan`.
+    // So we MUST call buildTextSpan at least once.
+
+    // Pump widget to ensure Controller is attached and built
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: TextField(controller: controller)),
+      ),
+    );
+
+    // Move cursor to 2 (Plain)
+    controller.selection = const TextSelection.collapsed(offset: 2);
+    await tester.pump(); // Allow listeners to fire
+
+    expect(controller.activeStyles.value, isEmpty);
+
+    // Move cursor to 9 (Bold)
+    controller.selection = const TextSelection.collapsed(offset: 9);
+    await tester.pump();
+
+    expect(controller.activeStyles.value.contains('bold'), isTrue);
+
+    // Move cursor to 16 (Plain " world")
+    // "Hello **Bold**" -> 6 + 2 + 4 + 2 = 14.
+    // " w" -> 16.
+    controller.selection = const TextSelection.collapsed(offset: 16);
+    await tester.pump();
+
+    expect(controller.activeStyles.value, isEmpty);
+  });
+
+  testWidgets('Controller applies formatting correctly', (tester) async {
+    final controller = MarkdownTextEditingController(text: 'Hello world');
+
+    // 1. Inline Insert (Bold) - "Hello |world"
+    controller.selection = const TextSelection.collapsed(offset: 6);
+    controller.applyFormat('bold');
+    // "Hello ".length is 6.
+    // "Hello " + "**" + "**" + "world" -> "Hello ****world"
+    // My expectation string is wrong.
+
+    expect(controller.text, 'Hello ****world');
+    expect(controller.selection.baseOffset, 8); // 6 + 2
+
+    // 2. Inline Wrap (Italic) - Select "Hello"
+    controller.text = 'Hello world';
+    controller.selection = const TextSelection(baseOffset: 0, extentOffset: 5);
+    controller.applyFormat('italic');
+    expect(controller.text, '_Hello_ world');
+
+    // 3. Block Prefix (Header) - "Hello world"
+    controller.text = 'Hello world';
+    controller.selection = const TextSelection.collapsed(offset: 5); // Middle
+    controller.applyFormat('header');
+    expect(controller.text, '# Hello world');
+
+    // 4. Link Insert (Collapsed) - "Link |"
+    controller.text = 'Link ';
+    controller.selection = const TextSelection.collapsed(offset: 5);
+    controller.applyFormat('link');
+    expect(controller.text, 'Link [text](url)');
+    // Selection should cover "text"
+    expect(controller.selection.baseOffset, 6);
+    expect(controller.selection.extentOffset, 10);
+    expect(controller.selection.textInside(controller.text), 'text');
+  });
 }

@@ -1,5 +1,4 @@
 import '../models/node.dart';
-import '../models/block_nodes.dart';
 
 class BlockParser {
   final String text;

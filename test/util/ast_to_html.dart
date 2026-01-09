@@ -1,6 +1,4 @@
 import 'package:blazing_protostar/src/features/editor/domain/models/node.dart';
-import 'package:blazing_protostar/src/features/editor/domain/models/block_nodes.dart';
-import 'package:blazing_protostar/src/features/editor/domain/models/inline_nodes.dart';
 
 class AstToHtmlRenderer implements NodeVisitor<String> {
   const AstToHtmlRenderer();

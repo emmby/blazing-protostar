@@ -1,6 +1,4 @@
 import '../models/node.dart';
-import '../models/block_nodes.dart';
-import '../models/inline_nodes.dart';
 
 class InlineParser {
   final DocumentNode document;
