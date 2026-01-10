@@ -110,7 +110,8 @@ class BlockParser {
     for (final child in children) {
       if (child is ParagraphNode &&
           mergedChildren.isNotEmpty &&
-          mergedChildren.last is ParagraphNode) {
+          mergedChildren.last is ParagraphNode &&
+          child.start == mergedChildren.last.end + 1) {
         final lastParagraph = mergedChildren.last as ParagraphNode;
         final lastTextNode = lastParagraph.children.first as TextNode;
         final currentTextNode = child.children.first as TextNode;

@@ -46,7 +46,6 @@ void main() {
         // Headings: Strict indentation and syntax handling
         // The editor parser is lenient with indentation (User Friendly) vs Spec (Strict)
         // and retains closing syntax # characters for WYSIWYG display.
-        64: 'Editor allows headers to interrupt paragraphs without requiring a blank line (User Preference)',
         67: 'Editor preserves trailing whitespace for editing fidelity (vs Spec stripping it)',
         68: 'Editor requires headers to start at adjacent to margin (No leading whitespace support yet)',
         69: 'Editor allows indented headers (Spec strictness requires 4 spaces to be Code Block)',
