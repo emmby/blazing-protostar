@@ -69,12 +69,12 @@ class DualEditorTestState extends State<DualEditorTest> {
 
     // Launch Two concurrent fuzzing loops
     await Future.wait([
-      _fuzzEditor(controller1, Random(seed + 1), iterations, onStep),
-      _fuzzEditor(controller2, Random(seed + 2), iterations, onStep),
+      _fuzzEditor(controller1, backend1, Random(seed + 1), iterations, onStep),
+      _fuzzEditor(controller2, backend2, Random(seed + 2), iterations, onStep),
     ]);
 
-    // Wait for final sync/convergence
-    await Future.delayed(const Duration(milliseconds: 500));
+    // Wait for final sync/convergence (increased for offline catch-up)
+    await Future.delayed(const Duration(milliseconds: 2000));
 
     final text1 = controller1.text;
     final text2 = controller2.text;
@@ -93,6 +93,7 @@ class DualEditorTestState extends State<DualEditorTest> {
   /// Runs an independent fuzzing loop for a single editor.
   Future<void> _fuzzEditor(
     MarkdownTextEditingController controller,
+    YjsDocumentBackend? backend,
     Random random,
     int iterations,
     Future<void> Function()? onStep,
@@ -132,6 +133,12 @@ class DualEditorTestState extends State<DualEditorTest> {
       // Rebuild UI for this editor
       setState(() {});
 
+      // Randomly toggle connectivity (10% chance)
+      if (backend != null && random.nextDouble() < 0.10) {
+        backend.setOnline(!backend.isOnline);
+        setState(() {});
+      }
+
       // Call onStep to allow frame pumping in integration tests
       // We synchronize this to avoid "Guarded function conflict" in tests
       if (onStep != null) {
@@ -146,6 +153,10 @@ class DualEditorTestState extends State<DualEditorTest> {
         }
       }
     }
+
+    // Ensure we are back online at the end for final convergence
+    backend?.setOnline(true);
+    setState(() {});
   }
 
   @override
@@ -194,6 +205,7 @@ class DualEditorTestState extends State<DualEditorTest> {
                         child: _buildMarkdownEditor(
                           'Editor 1 (User A)',
                           controller1,
+                          backend1,
                           const Key('editor1'),
                         ),
                       ),
@@ -202,6 +214,7 @@ class DualEditorTestState extends State<DualEditorTest> {
                         child: _buildMarkdownEditor(
                           'Editor 2 (User B)',
                           controller2,
+                          backend2,
                           const Key('editor2'),
                         ),
                       ),
@@ -217,17 +230,30 @@ class DualEditorTestState extends State<DualEditorTest> {
   Widget _buildMarkdownEditor(
     String title,
     MarkdownTextEditingController controller,
+    YjsDocumentBackend? backend,
     Key key,
   ) {
+    final isOnline = backend?.isOnline ?? true;
     return Column(
       children: [
         Container(
           padding: const EdgeInsets.all(8),
-          color: Colors.grey.shade200,
+          color: isOnline ? Colors.grey.shade200 : Colors.red.shade100,
           width: double.infinity,
-          child: Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+          child: Row(
+            children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+              const Spacer(),
+              if (!isOnline)
+                const Text(
+                  '[OFFLINE]',
+                  style: TextStyle(
+                    color: Colors.red,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
+            ],
           ),
         ),
         // Markdown Toolbar

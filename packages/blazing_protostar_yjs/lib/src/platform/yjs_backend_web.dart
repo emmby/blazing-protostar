@@ -7,15 +7,16 @@ external JSObject? get _yjsBridgeGlobal;
 
 @JS('YjsBridge')
 extension type _YjsBridge._(JSObject _) implements JSObject {
-  external String getText();
+  external String getText(String clientId);
   external void registerClient(String clientId, JSFunction callback);
   external void unregisterClient(String clientId);
+  external void setClientOnline(String clientId, bool online);
   external void insert(String clientId, int position, String text);
   external void delete(String clientId, int position, int count);
   external void undo(String clientId);
   external void redo(String clientId);
-  external bool canUndo();
-  external bool canRedo();
+  external bool canUndo(String clientId);
+  external bool canRedo(String clientId);
 }
 
 /// Generates a unique client ID for each backend instance.
@@ -34,6 +35,7 @@ String _generateClientId() {
 class YjsDocumentBackend extends DocumentBackend {
   final _YjsBridge _bridge;
   final String _clientId;
+  bool _isOnline = true;
 
   YjsDocumentBackend._(this._bridge, this._clientId) {
     _bridge.registerClient(
@@ -50,8 +52,19 @@ class YjsDocumentBackend extends DocumentBackend {
     return YjsDocumentBackend._(bridge as _YjsBridge, clientId);
   }
 
+  /// Sets whether this backend is currently "online" (syncing changes).
+  void setOnline(bool online) {
+    if (_isOnline == online) return;
+    _isOnline = online;
+    _bridge.setClientOnline(_clientId, online);
+    notifyListeners();
+  }
+
+  /// Whether this backend is currently online.
+  bool get isOnline => _isOnline;
+
   @override
-  String get text => _bridge.getText();
+  String get text => _bridge.getText(_clientId);
 
   @override
   void insert(int position, String text) {
@@ -72,10 +85,10 @@ class YjsDocumentBackend extends DocumentBackend {
   void redo() => _bridge.redo(_clientId);
 
   /// Whether there are operations that can be undone.
-  bool get canUndo => _bridge.canUndo();
+  bool get canUndo => _bridge.canUndo(_clientId);
 
   /// Whether there are operations that can be redone.
-  bool get canRedo => _bridge.canRedo();
+  bool get canRedo => _bridge.canRedo(_clientId);
 
   @override
   void dispose() {
