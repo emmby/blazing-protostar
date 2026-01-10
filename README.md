@@ -113,8 +113,9 @@ graph TD
 Detailed specifications are in the `docs/` directory:
 
 -   [Implementation Plan](docs/implementation_plan.md) - Phase checklist and progress.
--   [Core Editor Spec](docs/v001_core_editor.md) - Phase 1 design decisions.
--   [Toolbar Spec](docs/v002_toolbar.md) - Phase 2 requirements.
+-   [Core Editor Spec](docs/v001_core_editor.md) - v1 requirements.
+-   [Toolbar Spec](docs/v002_toolbar.md) - v2 requirements.
+-   [WYSIWYG Spec](docs/v003_wysiwyg.md) - v3 requirements.
 -   [Lexer Architecture](docs/lexer.md) - Parser design.
 -   [CRDT & Collaboration](docs/crdt.md) - Yjs integration details.
 
