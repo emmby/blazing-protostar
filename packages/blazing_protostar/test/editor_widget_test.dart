@@ -563,6 +563,122 @@ void main() {
           reason: 'Should show raw "- " marker when cursor is on line',
         );
       });
+
+      group('Nesting Regression', () {
+        testWidgets('styling inside lists works', (tester) async {
+          final controller = MarkdownTextEditingController(
+            text: '- **bold list item**',
+            isWysiwygMode: true,
+          );
+
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(body: TextField(controller: controller)),
+            ),
+          );
+
+          final span = controller.buildTextSpan(
+            context: tester.element(find.byType(TextField)),
+            withComposing: false,
+          );
+
+          bool foundBold = false;
+          void checkSpan(InlineSpan s) {
+            if (s is TextSpan) {
+              if (s.text == 'bold list item' ||
+                  s.text?.contains('bold list item') == true) {
+                if (s.style?.fontWeight == FontWeight.bold) {
+                  foundBold = true;
+                }
+              }
+              s.children?.forEach(checkSpan);
+            }
+          }
+
+          span.children?.forEach(checkSpan);
+
+          expect(
+            foundBold,
+            isTrue,
+            reason: 'Bold text inside list item should be styled bold',
+          );
+        });
+
+        testWidgets('links inside lists work', (tester) async {
+          final controller = MarkdownTextEditingController(
+            text: '- [link](url)',
+            isWysiwygMode: true,
+          );
+
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(body: TextField(controller: controller)),
+            ),
+          );
+
+          final span = controller.buildTextSpan(
+            context: tester.element(find.byType(TextField)),
+            withComposing: false,
+          );
+
+          bool foundLink = false;
+          void checkSpan(InlineSpan s) {
+            if (s is TextSpan) {
+              if (s.style?.color == Colors.blue) {
+                foundLink = true;
+              }
+              s.children?.forEach(checkSpan);
+            }
+          }
+
+          span.children?.forEach(checkSpan);
+
+          expect(
+            foundLink,
+            isTrue,
+            reason: 'Link inside list item should be blue',
+          );
+        });
+
+        testWidgets('styling inside headers works', (tester) async {
+          final controller = MarkdownTextEditingController(
+            text: '# **Header Bold**',
+            isWysiwygMode: true,
+          );
+
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(body: TextField(controller: controller)),
+            ),
+          );
+
+          final span = controller.buildTextSpan(
+            context: tester.element(find.byType(TextField)),
+            withComposing: false,
+          );
+
+          bool foundBold = false;
+          void checkSpan(InlineSpan s) {
+            if (s is TextSpan) {
+              if (s.text == 'Header Bold' ||
+                  s.text?.contains('Header Bold') == true) {
+                if (s.style?.fontWeight == FontWeight.bold) {
+                  foundBold = true;
+                }
+              }
+              s.children?.forEach(checkSpan);
+            }
+          }
+
+          span.children?.forEach(checkSpan);
+
+          expect(
+            foundBold,
+            isTrue,
+            reason: 'Bold text inside header should be styled bold',
+          );
+        });
+      });
     });
   });
 }

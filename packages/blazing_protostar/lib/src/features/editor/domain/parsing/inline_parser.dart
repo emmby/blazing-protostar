@@ -11,7 +11,7 @@ class InlineParser {
 
   void _visit(ElementNode node) {
     // If it's a leaf block (Header or Paragraph or ListItem), process its text children
-    if (node is HeaderNode || node is ParagraphNode) {
+    if (node is HeaderNode || node is ParagraphNode || node is ListItemNode) {
       _processBlock(node);
       return;
     }
