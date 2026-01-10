@@ -30,6 +30,7 @@ This project is a high-performance, aesthetically pleasing Markdown Editor built
 - **Unit Tests**: Verify business logic and ViewModels.
 - **Widget Tests**: Verify UI component rendering and basic interactions.
 - **Integration Tests**: Verify end-to-end flows.
+- **Conformance Testing**: When adding support for new markdown elements, they MUST be added to the spec tests filter in `test/spec_test.dart` and the parser MUST pass the relevant CommonMark conformance tests to ensure spec compliance.
 
 ## 5. Git & Workflow
 - **AI Agent Restriction**: 
