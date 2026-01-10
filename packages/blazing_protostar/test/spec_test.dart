@@ -18,13 +18,20 @@ void main() {
     final List<dynamic> tests = jsonDecode(jsonContent);
 
     // Filter for MVP features to avoid noise
-    final headingsTests = tests
-        .where((t) => t['section'] == 'ATX headings')
+    // Filter for MVP features + Nesting (Emphasis, Links)
+    final relevantSections = {
+      'ATX headings',
+      'Emphasis and strong emphasis',
+      'Links',
+    };
+
+    final desiredTests = tests
+        .where((t) => relevantSections.contains(t['section']))
         .toList();
 
     // We only enable a subset for now to verify our harness works
     // and demonstrate progress.
-    final testCases = headingsTests.take(5);
+    final testCases = desiredTests.take(100);
 
     for (final testCase in testCases) {
       final markdown = testCase['markdown'] as String;

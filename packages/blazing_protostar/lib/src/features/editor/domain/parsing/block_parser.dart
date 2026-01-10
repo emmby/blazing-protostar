@@ -101,8 +101,49 @@ class BlockParser {
       lineIndex++;
     }
 
+    // Post-processing: Merge adjacent ParagraphNodes?
+    // No, better to do it during the loop loop or just merge adjacent paragraphs here.
+    // Actually, the loop above emits a Paragraph for EVERY line.
+    // Let's refactor the loop to merge "Paragraph" lines into the *previous* Paragraph if valid.
+
+    final mergedChildren = <BlockNode>[];
+    for (final child in children) {
+      if (child is ParagraphNode &&
+          mergedChildren.isNotEmpty &&
+          mergedChildren.last is ParagraphNode) {
+        final lastParagraph = mergedChildren.last as ParagraphNode;
+        final lastTextNode = lastParagraph.children.first as TextNode;
+        final currentTextNode = child.children.first as TextNode;
+
+        // Merge logic
+        // We need to insert the missing newline between them
+        // Note: offsets might become non-contiguous if we aren't careful,
+        // but our basic _splitLines ensures offsets are sequential (line N end + 1 = line N+1 start).
+
+        final newText = lastTextNode.text + '\n' + currentTextNode.text;
+
+        // Replace the last paragraph with a merged one
+        mergedChildren.removeLast();
+        mergedChildren.add(
+          ParagraphNode(
+            children: [
+              TextNode(
+                text: newText,
+                start: lastTextNode.start,
+                end: currentTextNode.end,
+              ),
+            ],
+            start: lastParagraph.start,
+            end: child.end,
+          ),
+        );
+      } else {
+        mergedChildren.add(child);
+      }
+    }
+
     // Determine document end correctly
     final docEnd = text.isEmpty ? 0 : text.length;
-    return DocumentNode(children: children, start: 0, end: docEnd);
+    return DocumentNode(children: mergedChildren, start: 0, end: docEnd);
   }
 }
