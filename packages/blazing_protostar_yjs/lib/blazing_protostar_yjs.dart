@@ -5,6 +5,10 @@ import 'package:blazing_protostar/blazing_protostar.dart';
 import 'src/platform/yjs_backend_stub.dart'
     if (dart.library.js_interop) 'src/platform/yjs_backend_web.dart';
 
+export 'src/platform/yjs_backend_stub.dart'
+    if (dart.library.js_interop) 'src/platform/yjs_backend_web.dart'
+    show YjsDocumentBackend;
+
 /// A [DocumentBackend] implementation that syncs with Y.js.
 ///
 /// This class provides a clean Dart API, hiding the underlying JS interop

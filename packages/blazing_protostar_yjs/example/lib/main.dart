@@ -15,6 +15,7 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   MarkdownTextEditingController? _controller;
+  YjsDocumentBackend? _yjsBackend;
 
   @override
   void initState() {
@@ -27,6 +28,7 @@ class _MyAppState extends State<MyApp> {
     try {
       // Use the clean factory method instead of dealing with JS objects.
       backend = YjsBackend.create();
+      _yjsBackend = backend as YjsDocumentBackend;
     } catch (e) {
       backend = InMemoryBackend(
         initialText:
@@ -46,7 +48,33 @@ class _MyAppState extends State<MyApp> {
         useMaterial3: true,
       ),
       home: Scaffold(
-        appBar: AppBar(title: const Text('Yjs + Blazing Protostar')),
+        appBar: AppBar(
+          title: const Text('Yjs + Blazing Protostar'),
+          actions: [
+            // Undo button
+            IconButton(
+              icon: const Icon(Icons.undo),
+              tooltip: 'Undo',
+              onPressed: _yjsBackend != null
+                  ? () {
+                      _yjsBackend!.undo();
+                      setState(() {});
+                    }
+                  : null,
+            ),
+            // Redo button
+            IconButton(
+              icon: const Icon(Icons.redo),
+              tooltip: 'Redo',
+              onPressed: _yjsBackend != null
+                  ? () {
+                      _yjsBackend!.redo();
+                      setState(() {});
+                    }
+                  : null,
+            ),
+          ],
+        ),
         body: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(

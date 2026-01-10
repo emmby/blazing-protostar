@@ -10,9 +10,15 @@ extension type _YjsBridge._(JSObject _) implements JSObject {
   external void insert(int position, String text);
   external void delete(int position, int count);
   external void onUpdate(JSFunction callback);
+  external void undo();
+  external void redo();
+  external bool canUndo();
+  external bool canRedo();
 }
 
 /// A [DocumentBackend] implementation that syncs via Y.js BroadcastChannel.
+///
+/// Includes undo/redo support via Y.js UndoManager.
 class YjsDocumentBackend extends DocumentBackend {
   final _YjsBridge _bridge;
 
@@ -38,6 +44,18 @@ class YjsDocumentBackend extends DocumentBackend {
     if (count <= 0) return;
     _bridge.delete(position, count);
   }
+
+  /// Undo the last local operation.
+  void undo() => _bridge.undo();
+
+  /// Redo the last undone operation.
+  void redo() => _bridge.redo();
+
+  /// Whether there are operations that can be undone.
+  bool get canUndo => _bridge.canUndo();
+
+  /// Whether there are operations that can be redone.
+  bool get canRedo => _bridge.canRedo();
 }
 
 DocumentBackend createYjsBackend() {
