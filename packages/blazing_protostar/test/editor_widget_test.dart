@@ -353,5 +353,93 @@ void main() {
 
       expect(foundHiddenMarker, isTrue);
     });
+
+    testWidgets('replaces list markers with same-length bullets in WYSIWYG mode', (
+      tester,
+    ) async {
+      final controller = MarkdownTextEditingController(
+        text: '- List Item',
+        isWysiwygMode: true,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: TextField(controller: controller)),
+        ),
+      );
+
+      final span = controller.buildTextSpan(
+        context: tester.element(find.byType(TextField)),
+        withComposing: false,
+      );
+
+      bool foundReplacement = false;
+      void checkSpan(InlineSpan s) {
+        if (s is TextSpan) {
+          // Verify we found the replaced string "• "
+          if (s.text == '• ') {
+            // Verify it is NOT using zero-width style (since we decided to replace instead of hide)
+            if (s.style?.fontSize != 0) {
+              foundReplacement = true;
+            }
+          }
+          s.children?.forEach(checkSpan);
+        }
+      }
+
+      span.children?.forEach(checkSpan);
+
+      expect(
+        foundReplacement,
+        isTrue,
+        reason:
+            'Should replace "- " with "• " directly without zero-width styling',
+      );
+    });
+
+    testWidgets('uses comprehensive zero-width styling for control chars', (
+      tester,
+    ) async {
+      // Test with implicit link which uses generic control char hiding
+      final controller = MarkdownTextEditingController(
+        text: '[link](url)',
+        isWysiwygMode: true,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: TextField(controller: controller)),
+        ),
+      );
+
+      final span = controller.buildTextSpan(
+        context: tester.element(find.byType(TextField)),
+        withComposing: false,
+      );
+
+      bool foundCorrectZeroWidth = false;
+      void checkSpan(InlineSpan s) {
+        if (s is TextSpan) {
+          // Check for the hidden part of the link syntax, e.g. "](url)" or "["
+          // The gaps are typically rendered separately.
+          // Let's check if ANY span has the full set of zero-width properties
+          if (s.style?.fontSize == 0 &&
+              s.style?.height == 0 &&
+              s.style?.letterSpacing == 0 &&
+              s.style?.wordSpacing == 0) {
+            foundCorrectZeroWidth = true;
+          }
+          s.children?.forEach(checkSpan);
+        }
+      }
+
+      span.children?.forEach(checkSpan);
+
+      expect(
+        foundCorrectZeroWidth,
+        isTrue,
+        reason: 'Control chars must use height:0 and spacing:0',
+      );
+    });
   });
 }
