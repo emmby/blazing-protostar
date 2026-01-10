@@ -226,7 +226,9 @@ void main() {
   });
 
   group('WYSIWYG Mode', () {
-    testWidgets('hides control characters when enabled', (tester) async {
+    testWidgets('renders control characters with zero-width when enabled', (
+      tester,
+    ) async {
       final controller = MarkdownTextEditingController(
         text: 'Hello **Bold**',
         isWysiwygMode: true,
@@ -243,11 +245,24 @@ void main() {
         withComposing: false,
       );
 
-      // In WYSIWYG mode, control characters (**) should be hidden
-      // The full text span should NOT contain "**"
-      final plainText = span.toPlainText();
-      expect(plainText, 'Hello Bold');
-      expect(plainText.contains('**'), isFalse);
+      // In WYSIWYG mode, control characters (**) should be zero-width
+      // Check that we find spans with fontSize near 0 and transparent color
+      bool foundZeroWidthSpan = false;
+      void checkSpan(InlineSpan s) {
+        if (s is TextSpan) {
+          if (s.text == '**' &&
+              s.style?.fontSize != null &&
+              s.style!.fontSize! < 0.1 &&
+              s.style?.color == Colors.transparent) {
+            foundZeroWidthSpan = true;
+          }
+          s.children?.forEach(checkSpan);
+        }
+      }
+
+      span.children?.forEach(checkSpan);
+
+      expect(foundZeroWidthSpan, isTrue);
     });
 
     testWidgets('shows control characters when disabled', (tester) async {

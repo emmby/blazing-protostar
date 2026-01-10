@@ -339,17 +339,20 @@ class MarkdownTextEditingController extends TextEditingController {
       for (final child in node.children) {
         if (child.start > currentPos) {
           final gapText = text.substring(currentPos, child.start);
-          // In WYSIWYG mode, only hide control characters, not whitespace
           if (isWysiwygMode) {
-            // Preserve whitespace (newlines, spaces) but hide control chars
-            final whitespaceOnly = gapText.replaceAll(RegExp(r'[^\s]'), '');
-            if (whitespaceOnly.isNotEmpty) {
-              childrenSpans.add(
-                TextSpan(text: whitespaceOnly, style: currentStyle),
-              );
-            }
+            // Zero-width rendering: control chars are present but invisible
+            // This keeps offsets aligned for correct cursor/keyboard behavior
+            childrenSpans.add(
+              TextSpan(
+                text: gapText,
+                style: currentStyle.copyWith(
+                  fontSize: 0.01, // Near-zero but not exactly 0 to avoid issues
+                  color: Colors.transparent,
+                ),
+              ),
+            );
           } else {
-            // Normal mode: show everything in grey
+            // Normal mode: show control chars in grey
             childrenSpans.add(
               TextSpan(
                 text: gapText,
@@ -365,17 +368,19 @@ class MarkdownTextEditingController extends TextEditingController {
 
       if (currentPos < node.end) {
         final gapText = text.substring(currentPos, node.end);
-        // In WYSIWYG mode, only hide control characters, not whitespace
         if (isWysiwygMode) {
-          // Preserve whitespace (newlines, spaces) but hide control chars
-          final whitespaceOnly = gapText.replaceAll(RegExp(r'[^\s]'), '');
-          if (whitespaceOnly.isNotEmpty) {
-            childrenSpans.add(
-              TextSpan(text: whitespaceOnly, style: currentStyle),
-            );
-          }
+          // Zero-width rendering: control chars are present but invisible
+          childrenSpans.add(
+            TextSpan(
+              text: gapText,
+              style: currentStyle.copyWith(
+                fontSize: 0.01,
+                color: Colors.transparent,
+              ),
+            ),
+          );
         } else {
-          // Normal mode: show everything in grey
+          // Normal mode: show control chars in grey
           childrenSpans.add(
             TextSpan(
               text: gapText,
