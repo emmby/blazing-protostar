@@ -44,11 +44,15 @@
 │  ┌─────────────────┐    ┌─────────────────────────────────┐ │
 │  │ isWysiwygMode   │───▶│ buildTextSpan() logic           │ │
 │  │ (bool)          │    │ - Check cursor position vs AST  │ │
-│  └─────────────────┘    │ - Filter or reveal markers      │ │
-│                         │ - Apply fade animation          │ │
+│  └─────────────────┘    │ - Render control chars zero-wd  │ │
+│                         │ - Replace list markers w/ bullet│ │
 │                         └─────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+### Technical Implementation Details (Updated)
+- **Zero-Width Rendering**: Instead of filtering out control characters (which breaks cursor navigation and offsets), we render them with `fontSize: 0`, `letterSpacing: 0`, `wordSpacing: 0`, and `height: 0`. This keeps them in the render tree but invisible, ensuring `TextPainter` offsets match the buffer.
+- **List Replacement**: For list markers (`- `, `1. `), we **replace** the marker text with a bullet string of the **exact same length** (e.g., `- ` becomes `• `). This is crucial for maintaining 1:1 buffer-to-visual mapping for cursor navigation.
 
 ### Key Components
 
@@ -96,11 +100,14 @@
 
 ## 4. Acceptance Criteria
 
-### Phase 3a: Core Toggle & Rendering
--   [ ] `MarkdownEditor` accepts `isWysiwygMode` parameter.
--   [ ] When `isWysiwygMode: true`, control characters are hidden by default.
--   [ ] When `isWysiwygMode: false`, all control characters are visible (existing behavior).
--   [ ] **Unit Test**: `buildTextSpan()` produces correct spans with/without WYSIWYG mode.
+### Phase 3a: Core Toggle & Rendering ✅
+-   [x] `MarkdownEditor` accepts `isWysiwygMode` parameter.
+-   [x] When `isWysiwygMode: true`, control characters are hidden by default.
+-   [x] When `isWysiwygMode: false`, all control characters are visible (existing behavior).
+-   [x] **Unit Test**: `buildTextSpan()` produces correct spans with/without WYSIWYG mode.
+-   [x] **Zero-Width Implementation**: Control characters rendered with `fontSize: 0` etc. to preserve offsets.
+-   [x] **List Handling**: Markers replaced with bullets of equal length.
+-   [x] **Web Compatibility**: Verified no visual artifacts (extra spacing) on Web.
 
 ### Phase 3b: Reveal-on-Proximity
 -   [ ] Cursor inside styled region → markers visible.
@@ -120,11 +127,11 @@
 -   [ ] Copy produces raw Markdown in clipboard.
 -   [ ] **Integration Test**: Select styled text, copy, paste—Markdown preserved.
 
-### Phase 3e: Toolbar Integration
--   [ ] WYSIWYG toggle button in `MarkdownToolbar`.
--   [ ] Icon: `code` with highlight when active.
--   [ ] Clicking toggles `isWysiwygMode`.
--   [ ] **Widget Test**: Button presence and toggle behavior.
+### Phase 3e: Toolbar Integration ✅
+-   [x] WYSIWYG toggle button in `MarkdownToolbar`.
+-   [x] Icon: `code` with highlight when active.
+-   [x] Clicking toggles `isWysiwygMode`.
+-   [x] **Widget Test**: Button presence and toggle behavior.
 
 ### Performance
 -   [ ] Typing latency remains <16ms on 10,000-line document in Release mode.
@@ -134,10 +141,11 @@
 
 ## 5. Implementation Phases
 
-### Phase 3a: Core Toggle (Est. 2-3 days)
+### Phase 3a: Core Toggle (Completed)
 1.  Add `isWysiwygMode` parameter to `MarkdownEditor`.
-2.  Modify `buildTextSpan()` to filter control character spans when WYSIWYG ON.
-3.  Basic unit tests.
+2.  Modify `buildTextSpan()` to hide control characters using zero-width rendering.
+3.  Implement Lists replacement strategy.
+4.  Basic unit tests.
 
 ### Phase 3b: Reveal-on-Proximity (Est. 3-4 days)
 1.  Create `MarkerVisibilityCalculator` helper.
@@ -155,7 +163,7 @@
 1.  Extend visibility logic to include selection range.
 2.  Verify copy produces raw Markdown (likely works by default).
 
-### Phase 3e: Toolbar Integration (Est. 0.5 days)
+### Phase 3e: Toolbar Integration (Completed)
 1.  Add toggle button to `MarkdownToolbar`.
 2.  Wire up state and callback.
 3.  Widget tests.
