@@ -3,7 +3,7 @@ import 'package:blazing_protostar/blazing_protostar.dart';
 /// Creates a [DocumentBackend] that syncs with Y.js.
 ///
 /// Platform-specific implementations handle the bridge to the JS engine.
-DocumentBackend createYjsBackend() {
+DocumentBackend createYjsBackend({String? clientId}) {
   throw UnsupportedError(
     'YjsDocumentBackend is not supported on this platform.',
   );
@@ -29,6 +29,9 @@ class YjsDocumentBackend extends DocumentBackend {
   @override
   void delete(int position, int count) =>
       throw UnsupportedError('Not supported');
+
+  void setOnline(bool online) => throw UnsupportedError('Not supported');
+  bool get isOnline => throw UnsupportedError('Not supported');
 
   void undo() => throw UnsupportedError('Not supported');
   void redo() => throw UnsupportedError('Not supported');

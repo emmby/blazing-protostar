@@ -33,8 +33,8 @@ class DualEditorTestState extends State<DualEditorTest> {
 
   void _initControllers() {
     try {
-      backend1 = YjsBackend.create() as YjsDocumentBackend;
-      backend2 = YjsBackend.create() as YjsDocumentBackend;
+      backend1 = YjsBackend.create(clientId: 'user-a') as YjsDocumentBackend;
+      backend2 = YjsBackend.create(clientId: 'user-b') as YjsDocumentBackend;
       controller1 = MarkdownTextEditingController(backend: backend1);
       controller2 = MarkdownTextEditingController(backend: backend2);
     } catch (e) {

@@ -47,9 +47,9 @@ class YjsDocumentBackend extends DocumentBackend {
   }
 
   /// Creates a new [YjsDocumentBackend] with a unique client ID.
-  factory YjsDocumentBackend(JSObject bridge) {
-    final clientId = _generateClientId();
-    return YjsDocumentBackend._(bridge as _YjsBridge, clientId);
+  factory YjsDocumentBackend(JSObject bridge, {String? clientId}) {
+    final id = clientId ?? _generateClientId();
+    return YjsDocumentBackend._(bridge as _YjsBridge, id);
   }
 
   /// Sets whether this backend is currently "online" (syncing changes).
@@ -97,12 +97,12 @@ class YjsDocumentBackend extends DocumentBackend {
   }
 }
 
-DocumentBackend createYjsBackend() {
+DocumentBackend createYjsBackend({String? clientId}) {
   final bridge = _yjsBridgeGlobal;
   if (bridge == null) {
     throw StateError(
       'YjsBridge not found. Did you forget to include yjs_bridge.js in your index.html?',
     );
   }
-  return YjsDocumentBackend(bridge);
+  return YjsDocumentBackend(bridge, clientId: clientId);
 }

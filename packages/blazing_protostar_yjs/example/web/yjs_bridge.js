@@ -1,89 +1,118 @@
-import { Doc, UndoManager, applyUpdate, encodeStateAsUpdate } from 'https://cdn.jsdelivr.net/npm/yjs@13.6.29/+esm';
+import * as Y from 'https://esm.sh/yjs@13.6.29';
+import * as sync from 'https://esm.sh/y-protocols@1.0.6/sync';
+import * as encoding from 'https://esm.sh/lib0@0.2.88/encoding';
+import * as decoding from 'https://esm.sh/lib0@0.2.88/decoding';
 
-// Map of clientId -> { doc, text, undoManager, isOnline, callback }
+const { Doc, UndoManager, encodeStateAsUpdate } = Y;
+
+/**
+ * Registry of active clients. 
+ * Maps clientId (string) -> { doc, text, undoManager, isOnline, callback }
+ */
 const clients = new Map();
 
-// Use BroadcastChannel for cross-client sync
+/**
+ * BroadcastChannel for P2P synchronization.
+ */
 const bc = new BroadcastChannel('blazing-protostar-sync');
 
-// Helper to broadcast state
-const broadcast = (data, transferable = []) => {
-  // BroadcastChannel does not deliver to the same window.
-  // We manually dispatch to our own onmessage handler to support 
-  // multiple clients on the same page (Dual Editor test).
-  bc.postMessage(data, transferable);
-  
-  // Create a fake event object to match bc.onmessage expectation
+/**
+ * Generates a deterministic integer hash from a string.
+ */
+const hashCode = (str) => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash |= 0; // Convert to 32bit integer
+  }
+  return Math.abs(hash);
+};
+
+/**
+ * Broadcasts a binary payload to all participants.
+ */
+const broadcast = (data) => {
+  bc.postMessage(data);
   handleMessage({ data });
 };
 
-const broadcastUpdate = (senderId, update) => {
-  broadcast({ type: 'update', senderId, update: update.buffer }, [update.buffer]);
+/**
+ * Initiates the Yjs synchronization protocol.
+ */
+const sendSyncStep1 = (clientId, context) => {
+  const encoder = encoding.createEncoder();
+  sync.writeSyncStep1(encoder, context.doc);
+  sync.writeUpdate(encoder, encodeStateAsUpdate(context.doc));
+  broadcast({ senderId: clientId, payload: encoding.toUint8Array(encoder) });
 };
 
-const broadcastSyncRequest = (senderId) => {
-  broadcast({ type: 'sync-request', senderId });
-};
-
-// Listen for updates from other clients/tabs
+/**
+ * Main cross-client message handler.
+ */
 const handleMessage = (event) => {
-  const { type, senderId, update } = event.data;
-  
-  if (type === 'update') {
-    const updateData = new Uint8Array(update);
+  try {
+    const { senderId, payload } = event.data;
+    if (!payload) return;
+    
+    const payloadData = payload instanceof Uint8Array ? payload : new Uint8Array(payload);
+    
     for (const [clientId, context] of clients) {
       if (context.isOnline && clientId !== senderId) {
-        applyUpdate(context.doc, updateData, 'broadcast');
+        const decoder = decoding.createDecoder(payloadData);
+        const encoder = encoding.createEncoder();
+        let changed = false;
+        
+        while (decoding.hasContent(decoder)) {
+          // readSyncMessage handles Step 1 (writes Step 2 to encoder), Step 2, and Updates.
+          sync.readSyncMessage(decoder, encoder, context.doc, 'remote');
+        }
+
+        if (encoding.length(encoder) > 0) {
+          broadcast({ senderId: clientId, payload: encoding.toUint8Array(encoder) });
+        }
       }
     }
-  } else if (type === 'sync-request') {
-    // Someone wants our state. If we have online clients, send our full state.
-    for (const [clientId, context] of clients) {
-      if (context.isOnline && clientId !== senderId) {
-        const state = encodeStateAsUpdate(context.doc);
-        broadcastUpdate(clientId, state);
-      }
-    }
+  } catch (err) {
+    console.error(`[Bridge] Sync error:`, err);
   }
 };
 
 bc.onmessage = handleMessage;
 
+/**
+ * Bridge interface exposed to Flutter.
+ */
 window.YjsBridge = {
-  // Register a client with its own independent Doc
   registerClient: (clientId, callback) => {
+    if (clients.has(clientId)) {
+      clients.get(clientId).doc.destroy();
+    }
+
     const doc = new Doc();
+    // Deterministic clientID prevents clock collisions in tests.
+    doc.clientID = hashCode(clientId);
+    
     const text = doc.getText('markdown');
     const undoManager = new UndoManager(text, { trackedOrigins: new Set([clientId]) });
     
-    const context = {
-      doc,
-      text,
-      undoManager,
-      isOnline: true,
-      callback
-    };
-    
+    const context = { doc, text, undoManager, isOnline: true, callback };
     clients.set(clientId, context);
 
-    // Initial sync: request state from anyone else
-    broadcastSyncRequest(clientId);
-
-    // Observe changes and notify Flutter
     text.observe((event, transaction) => {
-      // If the change came from a remote sync (broadcast/initial-sync), notify Flutter
-      if (transaction.origin === 'broadcast' || transaction.origin === 'initial-sync') {
+      if (transaction.origin === 'remote') {
         callback(text.toString());
       }
     });
 
-    // Handle local updates -> Broadcast
     doc.on('update', (update, origin) => {
-      // Only broadcast if we are online and it's a local transaction
       if (context.isOnline && origin === clientId) {
-        broadcastUpdate(clientId, update);
+        const encoder = encoding.createEncoder();
+        sync.writeUpdate(encoder, update);
+        broadcast({ senderId: clientId, payload: encoding.toUint8Array(encoder) });
       }
     });
+
+    sendSyncStep1(clientId, context);
   },
 
   unregisterClient: (clientId) => {
@@ -102,14 +131,8 @@ window.YjsBridge = {
     context.isOnline = isOnline;
 
     if (isOnline && wasOffline) {
-      // Reconnected! 
-      // 1. Request state from others
-      broadcastSyncRequest(clientId);
-      // 2. Broadcast our own state so others can merge OUR offline changes
-      const state = encodeStateAsUpdate(context.doc);
-      broadcastUpdate(clientId, state);
-      
-      // Also notify Flutter to refresh
+      console.log(`[Bridge] ${clientId} reconnected`);
+      sendSyncStep1(clientId, context);
       context.callback(context.text.toString());
     }
   },

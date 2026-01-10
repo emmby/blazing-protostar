@@ -17,5 +17,6 @@ abstract class YjsBackend {
   /// Creates a [DocumentBackend] instance that uses Y.js for storage.
   ///
   /// On Web, this requires `yjs_bridge.js` to be loaded in the page.
-  static DocumentBackend create() => createYjsBackend();
+  static DocumentBackend create({String? clientId}) =>
+      createYjsBackend(clientId: clientId);
 }
