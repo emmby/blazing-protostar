@@ -296,14 +296,43 @@ class MarkdownTextEditingController extends TextEditingController {
 
     // 2. Convert AST to TextSpans with Styling
     // We pass the "default" style (likely from TextField) as the base.
-    return _renderNode(document, style ?? const TextStyle());
+    return _renderNode(document, style ?? const TextStyle(), null);
   }
 
-  TextSpan _renderNode(Node node, TextStyle currentStyle) {
-    // ... existing implementation ...
-    // (I will keep the existing buildTextSpan logic for now as it relies on the parser output)
-    // (The parser output and _blocks will stay in sync because they both derive from text)
+  TextSpan _renderNode(Node node, TextStyle currentStyle, Node? parent) {
+    // Handle TextNode - special case for list items
     if (node is TextNode) {
+      // If parent is ListItemNode and WYSIWYG mode, handle the marker
+      if (isWysiwygMode && parent is ListItemNode) {
+        final nodeText = node.text;
+        // Match the list marker at start of text (e.g., "- " or "* " or "+ ")
+        final markerMatch = RegExp(r'^([*+-])[ \t]+').firstMatch(nodeText);
+        if (markerMatch != null) {
+          final markerLength = markerMatch.end;
+          final markerText = nodeText.substring(0, markerLength);
+          final contentText = nodeText.substring(markerLength);
+
+          return TextSpan(
+            children: [
+              // Render marker as zero-width (for offset alignment)
+              TextSpan(
+                text: markerText,
+                style: currentStyle.copyWith(
+                  fontSize: 0,
+                  color: Colors.transparent,
+                ),
+              ),
+              // Add visible bullet
+              TextSpan(
+                text: '• ',
+                style: currentStyle.copyWith(color: Colors.grey.shade600),
+              ),
+              // Render remaining content normally
+              TextSpan(text: contentText, style: currentStyle),
+            ],
+          );
+        }
+      }
       return TextSpan(text: node.text, style: currentStyle);
     }
 
@@ -340,13 +369,12 @@ class MarkdownTextEditingController extends TextEditingController {
         if (child.start > currentPos) {
           final gapText = text.substring(currentPos, child.start);
           if (isWysiwygMode) {
-            // Zero-width rendering: control chars are present but invisible
-            // This keeps offsets aligned for correct cursor/keyboard behavior
+            // Zero-width rendering for control chars
             childrenSpans.add(
               TextSpan(
                 text: gapText,
                 style: currentStyle.copyWith(
-                  fontSize: 0, // Truly zero-width
+                  fontSize: 0,
                   color: Colors.transparent,
                 ),
               ),
@@ -362,7 +390,7 @@ class MarkdownTextEditingController extends TextEditingController {
           }
         }
 
-        childrenSpans.add(_renderNode(child, newStyle));
+        childrenSpans.add(_renderNode(child, newStyle, node));
         currentPos = child.end;
       }
 
