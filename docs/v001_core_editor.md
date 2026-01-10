@@ -1,4 +1,4 @@
-# Phase 1: Core Editor & Styling Engine
+# Phase 1: Core Editor & Styling Engine ✅
 
 ## Goal
 Establish a robust text editor that allows users to type Markdown and see "Live Styling" (syntax highlighting) while keeping all control characters (like `**`, `#`) visible.
