@@ -1,96 +1,135 @@
-# CommonMark Editor for Flutter
+# Blazing Protostar
 
-A simple, clean CommonMark editor designed for Flutter. This project aims to provide a lightweight yet powerful editing experience with minimal dependencies.
+A high-performance, aesthetically pleasing Markdown Editor for Flutter. Built with real-time collaboration in mind.
+
+[![Flutter](https://img.shields.io/badge/Flutter-3.x-blue?logo=flutter)](https://flutter.dev)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 ## Key Features
 
-1.  **Direct Markdown Editing (Default)**
+1.  **Direct Markdown Editing** ✅
     -   Users edit Markdown text directly.
-    -   Control characters (e.g., `**`, `#`) are visible.
-    -   **Live Styling**: Even with control characters visible, the text is styled (e.g., bold text appears bold).
+    -   Control characters (e.g., `**`, `#`) are visible but styled in a low-contrast color.
+    -   **Live Styling**: Text is styled in real-time (e.g., bold text appears bold).
 
-2.  **Markdown Toolbar**
-    -   Standard CommonMark operations (Bold, Header, Italic, List, Link).
+2.  **Markdown Toolbar** ✅
+    -   Standard CommonMark operations (Bold, Italic, Header, List, Link).
     -   Actions insert appropriate control characters into the text stream.
-    -   **Configurable Positioning**:
-        -   Can be placed as a fixed header (Top).
-        -   Can be placed as a keyboard accessory or footer (Bottom).
+    -   **Reactive Highlighting**: Buttons highlight based on cursor position.
+    -   **Configurable Positioning**: Can be placed as a header (Top) or footer (Bottom).
 
-3.  **Collaborative Editing (Optional)**
-    -   Support for real-time collaboration via **Y.js**.
-    -   **Block-Aware Sync**: Synchronizes the document as a structured tree of blocks for robust conflict resolution.
-    -   **Presence**: Shows remote cursors and selections.
-    -   *Details*: See [crdt.md](crdt.md) for technical requirements.
+3.  **Collaborative Editing (Optional)** ✅
+    -   Real-time collaboration via **Y.js** CRDT.
+    -   **Block-Aware Sync**: Robust conflict resolution for concurrent edits.
+    -   **Cross-Tab Sync**: Edits sync across browser tabs via `BroadcastChannel`.
+    -   *Details*: See [crdt.md](docs/crdt.md) for technical requirements.
 
-4.  **WYSIWYG Toggle**
+4.  **WYSIWYG Toggle** 🚧
     -   A toggleable mode that hides control characters while preserving styling.
     -   Allows users to see the rendered output without distraction ("Zen Mode").
 
-5.  **Read-Only Mode**
+5.  **Read-Only Mode** 🚧
     -   Disables editing capabilities.
     -   Useful for previews or displaying static content.
 
-## Project Structure
+6.  **Full Theme Customization** 🚧
+    -   Control all visual aspects (colors, text styles, syntax opacity) via a theme object.
+    -   *Rationale*: Ensures the editor can adapt to any design system.
+
+## 📦 Project Structure
 
 This is a monorepo containing the following packages:
-- **[blazing_protostar](packages/blazing_protostar)**: The core Markdown editor widget and logic. Lean, dependency-free core.
-- **[blazing_protostar_yjs](packages/blazing_protostar_yjs)**: The Yjs collaboration plugin. Provides Yjs-backed storage for real-time multiplayer editing.
 
-## Technical Architecture
+| Package                                                       | Description                                    |
+| :------------------------------------------------------------ | :--------------------------------------------- |
+| **[blazing_protostar](packages/blazing_protostar)**           | Core editor widget, lexer, and controller.     |
+| **[blazing_protostar_yjs](packages/blazing_protostar_yjs)**   | Yjs collaboration plugin with JS bridge.       |
 
-### Core: Custom TextEditingController
-To achieve the requirements with minimal dependencies, we will rely on a customized `TextEditingController`.
--   **Mechanism**: Override the `buildTextSpan` method.
--   **Data Strategy (Block-Aware)**: 
-    -   The controller maintains a list of semantic **Blocks** (Paragraphs, Headers, etc.).
-    -   This allows for high-performance updates and perfectly aligns with CRDT/Y.js synchronization requirements.
--   **Parsing Strategy (Lexer/Scanner)**:
-    -   We use a lightweight **Lexer** to scan text and produce an AST.
-    -   **Design Specs**: See [lexer.md](lexer.md) for the detailed architecture.
--   **Collaboration Bridge**: 
-    -   Abstract `DocumentBackend` allows the editor to function as a standalone flat-string editor OR as a collaborative client by plugging in a Y.js provider.
+## 🚀 Getting Started
 
-## Detailed Specifications
--   [Lexer Specification](lexer.md) - Deep dive into parsing and AST strategy.
--   [CRDT & Collaboration](crdt.md) - Requirements for Y.js integration and block-awareness.
+### Prerequisites
 
-## Implementation Phases
+-   Flutter SDK (stable channel)
+-   A web browser for development (Chrome recommended)
 
-### Phase 1: Core Editor & Styling Engine
-*Goal: Establish a text input that recognizes and styles Markdown syntax while keeping characters visible.*
-- **Acceptance Criteria**:
-    -   [ ] Basic text input works.
-    -   [ ] Typing `**bold**` renders the text in bold font.
-    -   [ ] Typing `# Header` renders as a large heading.
-    -   [ ] Performance is smooth for medium-sized documents.
+### Running the Example
 
-### Phase 2: Toolbar & Integration
-*Goal: Add interactive controls and ensure flexible placement.*
-- **Acceptance Criteria**:
-    -   [ ] Toolbar widget created (decoupled from the editor).
-    -   [ ] Editor widget accepts a toolbar builder or can be composed with the toolbar.
+```bash
+# Navigate to the example app
+cd packages/blazing_protostar_yjs/example
 
-### Phase 3: Block-Aware Controller (CRDT Prep)
-*Goal: Refactor internals to support structured synchronization.*
-- **Acceptance Criteria**:
-    -   [ ] Controller refactored to manage a list of `MarkdownBlock` objects.
-    -   [ ] Backwards compatibility for single-string usage.
-    -   [ ] No regressions in typing UX.
+# Run on Chrome
+flutter run -d chrome
+```
 
-### Phase 4: Y.js Integration
-*Goal: Implement the collaborative editing bridge.*
-- **Acceptance Criteria**:
-    -   [ ] `YjsDocumentBackend` implemented.
-    -   [ ] Real-time sync between two editors.
-    -   [ ] Remote cursor rendering.
+### Using in Your Project
 
-### Phase 5: The WYSIWYG Toggle (Masking)
-*Goal: Implement the logic to hide control characters on demand.*
-- **Acceptance Criteria**:
-    -   [ ] Toggle switch works.
-    -   [ ] When enabled, `**` and `#` disappear visually but structure remains.
+Add the core package to your `pubspec.yaml`:
 
-## Future Roadmap (Post-v1.0)
--   **Full Theme Customizability**:
-    -   Developers consuming this package must be able to customize ALL visual styling decisions (colors, text styles, syntax visibility opacity) via a theme or configuration object.
-    -   *Rationale*: Ensures the editor can adapt to any design system.
+```yaml
+dependencies:
+  blazing_protostar:
+    path: ../packages/blazing_protostar # Or use a git dependency
+```
+
+For collaboration features, also add the Yjs plugin:
+
+```yaml
+dependencies:
+  blazing_protostar_yjs:
+    path: ../packages/blazing_protostar_yjs
+```
+
+## 🏛️ Architecture
+
+The editor is built around a custom `TextEditingController` that uses a two-phase parsing strategy:
+
+```mermaid
+graph LR
+    A[Raw Markdown Text] --> B(Block Parser);
+    B --> C[Block AST];
+    C --> D(Inline Parser);
+    D --> E[Full AST];
+    E --> F(buildTextSpan);
+    F --> G[Styled TextSpan];
+```
+
+For collaboration, an abstract `DocumentBackend` allows the editor to function standalone or connect to a CRDT provider:
+
+```mermaid
+graph TD
+    subgraph "Core Package"
+        A[MarkdownTextEditingController] --> B[DocumentBackend Abstract];
+        B --> C[InMemoryBackend];
+    end
+    subgraph "Yjs Plugin"
+        B --> D[YjsDocumentBackend];
+        D --> E[yjs_bridge.js];
+    end
+```
+
+## 📚 Documentation
+
+Detailed specifications are in the `docs/` directory:
+
+-   [Implementation Plan](docs/implementation_plan.md) - Phase checklist and progress.
+-   [Core Editor Spec](docs/v001_core_editor.md) - Phase 1 design decisions.
+-   [Toolbar Spec](docs/v002_toolbar.md) - Phase 2 requirements.
+-   [Lexer Architecture](docs/lexer.md) - Parser design.
+-   [CRDT & Collaboration](docs/crdt.md) - Yjs integration details.
+
+## 🧪 Testing
+
+```bash
+# Run core package tests
+cd packages/blazing_protostar
+flutter test
+
+# Run Yjs package tests
+cd packages/blazing_protostar_yjs
+flutter test
+```
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

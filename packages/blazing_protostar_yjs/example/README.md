@@ -1,16 +1,21 @@
-# blazing_protostar_yjs_example
+# Blazing Protostar Yjs Example
 
-A new Flutter project.
+This example demonstrates real-time collaborative Markdown editing using the `blazing_protostar_yjs` package with Y.js as the CRDT backend.
 
-## Getting Started
+## Features
 
-This project is a starting point for a Flutter application.
+-   **Multi-Editor Sync**: Two editors on the same page that sync in real-time.
+-   **Cross-Tab Sync**: Changes sync across browser tabs via `BroadcastChannel`.
+-   **Offline Support**: Editors can go "offline" and sync changes when reconnected.
+-   **Undo/Redo**: Integrated with Yjs `UndoManager` for collaborative undo.
 
-A few resources to get you started if this is your first Flutter project:
+## Running the Example
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+```bash
+cd packages/blazing_protostar_yjs/example
+flutter run -d chrome --web-port=8080
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Testing
+
+Navigate to `http://localhost:8080/#/dual_editor_test` to run the convergence fuzz test, which verifies that concurrent edits across two editors always converge to the same state.
