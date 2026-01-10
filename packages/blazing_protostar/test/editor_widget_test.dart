@@ -251,8 +251,7 @@ void main() {
       void checkSpan(InlineSpan s) {
         if (s is TextSpan) {
           if (s.text == '**' &&
-              s.style?.fontSize != null &&
-              s.style!.fontSize! < 0.1 &&
+              s.style?.fontSize == 0 &&
               s.style?.color == Colors.transparent) {
             foundZeroWidthSpan = true;
           }

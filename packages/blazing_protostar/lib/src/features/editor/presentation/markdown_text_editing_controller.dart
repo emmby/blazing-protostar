@@ -346,7 +346,7 @@ class MarkdownTextEditingController extends TextEditingController {
               TextSpan(
                 text: gapText,
                 style: currentStyle.copyWith(
-                  fontSize: 0.01, // Near-zero but not exactly 0 to avoid issues
+                  fontSize: 0, // Truly zero-width
                   color: Colors.transparent,
                 ),
               ),
@@ -374,7 +374,7 @@ class MarkdownTextEditingController extends TextEditingController {
             TextSpan(
               text: gapText,
               style: currentStyle.copyWith(
-                fontSize: 0.01,
+                fontSize: 0, // Truly zero-width
                 color: Colors.transparent,
               ),
             ),
