@@ -23,6 +23,7 @@ class DualEditorTestState extends State<DualEditorTest> {
   String? error;
   bool testRunning = false;
   String testResult = '';
+  bool _stepBusy = false;
 
   @override
   void initState() {
@@ -57,10 +58,8 @@ class DualEditorTestState extends State<DualEditorTest> {
 
     setState(() {
       testRunning = true;
-      testResult = 'Running...';
+      testResult = 'Running Concurrent Chaotic Fuzz...';
     });
-
-    final random = Random(seed);
 
     // Clear both editors first
     controller1.text = '';
@@ -68,60 +67,14 @@ class DualEditorTestState extends State<DualEditorTest> {
     controller2.text = '';
     await Future.delayed(const Duration(milliseconds: 50));
 
-    for (var i = 0; i < iterations; i++) {
-      setState(() {
-        testResult = 'Running operation ${i + 1}/$iterations...';
-      });
+    // Launch Two concurrent fuzzing loops
+    await Future.wait([
+      _fuzzEditor(controller1, Random(seed + 1), iterations, onStep),
+      _fuzzEditor(controller2, Random(seed + 2), iterations, onStep),
+    ]);
 
-      // Random delay to make operations visible (200-500ms)
-      await Future.delayed(Duration(milliseconds: 200 + random.nextInt(300)));
-
-      // Alternate between editors, or randomly pick one
-      final targetController = random.nextBool() ? controller1 : controller2;
-      final currentText = targetController.text;
-
-      // Random operation: insert, delete, or replace
-      final op = random.nextInt(3);
-
-      if (op == 0 || currentText.isEmpty) {
-        // Insert random text at random position
-        final pos = currentText.isEmpty
-            ? 0
-            : random.nextInt(currentText.length + 1);
-        final chars = String.fromCharCodes(
-          List.generate(random.nextInt(3) + 1, (_) => random.nextInt(26) + 97),
-        );
-        targetController.text =
-            currentText.substring(0, pos) + chars + currentText.substring(pos);
-      } else if (op == 1 && currentText.isNotEmpty) {
-        // Delete random character
-        final pos = random.nextInt(currentText.length);
-        targetController.text =
-            currentText.substring(0, pos) + currentText.substring(pos + 1);
-      } else if (currentText.isNotEmpty) {
-        // Replace random character
-        final pos = random.nextInt(currentText.length);
-        final char = String.fromCharCode(random.nextInt(26) + 65); // A-Z
-        targetController.text =
-            currentText.substring(0, pos) +
-            char +
-            currentText.substring(pos + 1);
-      }
-
-      // Rebuild UI
-      setState(() {});
-
-      // Call onStep to allow frame pumping in integration tests
-      if (onStep != null) {
-        await onStep();
-      }
-
-      // Small delay after op for stability/sync
-      await Future.delayed(const Duration(milliseconds: 50));
-    }
-
-    // Wait for final sync
-    await Future.delayed(const Duration(milliseconds: 200));
+    // Wait for final sync/convergence
+    await Future.delayed(const Duration(milliseconds: 500));
 
     final text1 = controller1.text;
     final text2 = controller2.text;
@@ -135,6 +88,64 @@ class DualEditorTestState extends State<DualEditorTest> {
     });
 
     return converged;
+  }
+
+  /// Runs an independent fuzzing loop for a single editor.
+  Future<void> _fuzzEditor(
+    MarkdownTextEditingController controller,
+    Random random,
+    int iterations,
+    Future<void> Function()? onStep,
+  ) async {
+    for (var i = 0; i < iterations; i++) {
+      // Random delay to make operations asynchronous/chaotic (100-500ms)
+      await Future.delayed(Duration(milliseconds: 100 + random.nextInt(400)));
+
+      final currentText = controller.text;
+      final op = random.nextInt(3);
+
+      if (op == 0 || currentText.isEmpty) {
+        // Insert
+        final pos = currentText.isEmpty
+            ? 0
+            : random.nextInt(currentText.length + 1);
+        final chars = String.fromCharCodes(
+          List.generate(random.nextInt(3) + 1, (_) => random.nextInt(26) + 97),
+        );
+        controller.text =
+            currentText.substring(0, pos) + chars + currentText.substring(pos);
+      } else if (op == 1 && currentText.isNotEmpty) {
+        // Delete
+        final pos = random.nextInt(currentText.length);
+        controller.text =
+            currentText.substring(0, pos) + currentText.substring(pos + 1);
+      } else if (currentText.isNotEmpty) {
+        // Replace
+        final pos = random.nextInt(currentText.length);
+        final char = String.fromCharCode(random.nextInt(26) + 65);
+        controller.text =
+            currentText.substring(0, pos) +
+            char +
+            currentText.substring(pos + 1);
+      }
+
+      // Rebuild UI for this editor
+      setState(() {});
+
+      // Call onStep to allow frame pumping in integration tests
+      // We synchronize this to avoid "Guarded function conflict" in tests
+      if (onStep != null) {
+        while (_stepBusy) {
+          await Future.delayed(const Duration(milliseconds: 10));
+        }
+        _stepBusy = true;
+        try {
+          await onStep();
+        } finally {
+          _stepBusy = false;
+        }
+      }
+    }
   }
 
   @override
