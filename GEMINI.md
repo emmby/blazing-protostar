@@ -32,6 +32,8 @@ This project is a high-performance, aesthetically pleasing Markdown Editor built
 - **Integration Tests**: Verify end-to-end flows.
 
 ## 5. Git & Workflow
-- **AI Agent Restriction**: The AI agent MUST NOT commit changes unless explicitly instructed by the user (e.g., via `/commit` or a direct request).
+- **AI Agent Restriction**: 
+  > [!IMPORTANT]
+  > The AI agent MUST NOT commit changes unless explicitly instructed by the user via a clear and direct command (e.g., using the `/commit` slash command). Automating commits after a task is STRICTLY FORBIDDEN unless the user has given immediate, explicit consent in the current turn.
 - **Commits**: Follow <type>(<scope>): <subject> convention.
 - **PRs**: Keep PRs focused on single tasks or features.
