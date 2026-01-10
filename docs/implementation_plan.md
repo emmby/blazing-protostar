@@ -40,15 +40,40 @@ Implement a valid CommonMark lexer and a custom `TextEditingController` that ren
 *Goal: Add interactive controls.*
 
 ### 1. Controller Logic (Selection & Formatting)
-- [ ] **Reactive Selection**: Update `MarkdownTextEditingController` to expose active styles.
-- [ ] **Formatting Logic**: Implement methods to apply Bold/Italic/etc. (Wrap/Insert).
-- [ ] **Unit Tests**: Verify selection detection and formatting helpers.
+- [x] **Reactive Selection**: Update `MarkdownTextEditingController` to expose active styles.
+- [x] **Formatting Logic**: Implement methods to apply Bold/Italic/etc. (Wrap/Insert).
+- [x] **Unit Tests**: Verify selection detection and formatting helpers.
 
 ### 2. UI Components
-- [ ] **MarkdownButton Widget**: Reusable, selectable button.
-- [ ] **MarkdownToolbar Widget**: Row of buttons consuming the Controller.
-- [ ] **Widget Tests**: Verify toolbar highlights based on Controller state.
+- [x] **MarkdownButton Widget**: Reusable, selectable button.
+- [x] **MarkdownToolbar Widget**: Row of buttons consuming the Controller.
+- [x] **Widget Tests**: Verify toolbar highlights based on Controller state.
 
 ### 3. Integration
-- [ ] **Main Screen**: Assemble `Column(Editor, Toolbar)`.
-- [ ] **Manual Verification**: Test touch interactions on simulator/web.
+- [x] **Main Screen**: Assemble `Column(Editor, Toolbar)`.
+- [x] **Manual Verification**: Test touch interactions on simulator/web.
+
+## Phase 3: Enhanced Formatting
+*Goal: Support more complex Markdown syntax.*
+
+### 1. New Syntax Support
+- [ ] **Inline Code**: Parser & Controller support for `` `code` ``.
+- [ ] **Strikethrough**: Parser & Controller support for `~~text~~`.
+- [ ] **Horizontal Rule**: Parser support for `---`.
+
+### 2. UI Updates
+- [ ] **Extended Toolbar**: Add buttons for new formats.
+- [ ] **Visual Styles**: Define rendering for code/strikethrough.
+
+## Phase 4: Multi-User Collaboration (Yjs)
+*Goal: Real-time sync and conflict resolution.*
+
+### 1. Yjs Infrastructure
+- [x] **Yjs Backend**: Implement `YjsDocumentBackend` (Web).
+- [x] **JS Bridge**: Create `yjs_bridge.js` with BroadcastChannel support.
+- [x] **Undo Manager**: Integration with Yjs undo/redo stack.
+
+### 2. Verification & Testing
+- [x] **Convergence Fuzz Test**: Verify concurrent edits using side-by-side editors.
+- [ ] **Offline Sync**: Verify data persistence and catch-up after disconnection.
+- [ ] **Cursor Sync**: (Future) Shared cursor visibility.
