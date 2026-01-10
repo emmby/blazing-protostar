@@ -32,16 +32,15 @@ ytext.observe((event, transaction) => {
 
 window.YjsBridge = {
   getText: () => ytext.toString(),
-  updateText: (text) => {
-    const current = ytext.toString();
-    if (current === text) return;
-    
-    import('https://cdn.jsdelivr.net/npm/yjs@13.6.29/+esm').then(() => {
-      ydoc.transact(() => {
-        ytext.delete(0, current.length);
-        ytext.insert(0, text);
-      }, 'local');
-    });
+  insert: (position, text) => {
+    ydoc.transact(() => {
+      ytext.insert(position, text);
+    }, 'local');
+  },
+  delete: (position, count) => {
+    ydoc.transact(() => {
+      ytext.delete(position, count);
+    }, 'local');
   },
   onUpdate: (callback) => {
     dartCallback = callback;

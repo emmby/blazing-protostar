@@ -55,7 +55,46 @@ class MarkdownTextEditingController extends TextEditingController {
     // Only update backend if this is a LOCAL change
     if (newValue.text != oldText && !_isApplyingRemoteUpdate) {
       _blocks = _splitIntoBlocks(newValue.text);
-      _backend.updateText(newValue.text);
+      _applyDeltaToBackend(oldText, newValue.text);
+    }
+  }
+
+  /// Computes a simple diff between [oldText] and [newText] and applies
+  /// the minimal insert/delete operations to the backend.
+  void _applyDeltaToBackend(String oldText, String newText) {
+    // Find common prefix
+    int commonPrefixLength = 0;
+    final minLength = oldText.length < newText.length
+        ? oldText.length
+        : newText.length;
+    while (commonPrefixLength < minLength &&
+        oldText[commonPrefixLength] == newText[commonPrefixLength]) {
+      commonPrefixLength++;
+    }
+
+    // Find common suffix (after the prefix)
+    int commonSuffixLength = 0;
+    while (commonSuffixLength < (oldText.length - commonPrefixLength) &&
+        commonSuffixLength < (newText.length - commonPrefixLength) &&
+        oldText[oldText.length - 1 - commonSuffixLength] ==
+            newText[newText.length - 1 - commonSuffixLength]) {
+      commonSuffixLength++;
+    }
+
+    // Calculate the range that changed
+    final deleteCount =
+        oldText.length - commonPrefixLength - commonSuffixLength;
+    final insertText = newText.substring(
+      commonPrefixLength,
+      newText.length - commonSuffixLength,
+    );
+
+    // Apply delete first, then insert
+    if (deleteCount > 0) {
+      _backend.delete(commonPrefixLength, deleteCount);
+    }
+    if (insertText.isNotEmpty) {
+      _backend.insert(commonPrefixLength, insertText);
     }
   }
 

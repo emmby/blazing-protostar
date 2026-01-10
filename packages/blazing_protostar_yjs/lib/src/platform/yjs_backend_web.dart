@@ -7,7 +7,8 @@ external JSObject? get _yjsBridgeGlobal;
 @JS('YjsBridge')
 extension type _YjsBridge._(JSObject _) implements JSObject {
   external String getText();
-  external void updateText(String text);
+  external void insert(int position, String text);
+  external void delete(int position, int count);
   external void onUpdate(JSFunction callback);
 }
 
@@ -27,9 +28,15 @@ class YjsDocumentBackend extends DocumentBackend {
   String get text => _bridge.getText();
 
   @override
-  void updateText(String newText) {
-    if (text == newText) return;
-    _bridge.updateText(newText);
+  void insert(int position, String text) {
+    if (text.isEmpty) return;
+    _bridge.insert(position, text);
+  }
+
+  @override
+  void delete(int position, int count) {
+    if (count <= 0) return;
+    _bridge.delete(position, count);
   }
 }
 

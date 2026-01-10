@@ -12,9 +12,16 @@ class InMemoryBackend extends DocumentBackend {
   String get text => _text;
 
   @override
-  void updateText(String newText) {
-    if (_text == newText) return;
-    _text = newText;
+  void insert(int position, String text) {
+    if (text.isEmpty) return;
+    _text = _text.substring(0, position) + text + _text.substring(position);
+    notifyListeners();
+  }
+
+  @override
+  void delete(int position, int count) {
+    if (count <= 0) return;
+    _text = _text.substring(0, position) + _text.substring(position + count);
     notifyListeners();
   }
 }

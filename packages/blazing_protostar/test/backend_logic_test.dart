@@ -25,7 +25,9 @@ void main() {
 
         expect(controller.text, 'Old');
 
-        backend.updateText('Remote Change');
+        // Simulate remote change: delete 'Old', insert 'Remote Change'
+        backend.delete(0, 3);
+        backend.insert(0, 'Remote Change');
         expect(controller.text, 'Remote Change');
       },
     );
@@ -36,9 +38,35 @@ void main() {
 
       expect(controller.blocks.first.text, 'First');
 
-      backend.updateText('# Header');
+      // Simulate remote change: delete 'First', insert '# Header'
+      backend.delete(0, 5);
+      backend.insert(0, '# Header');
       expect(controller.blocks.first.type, 'header');
       expect(controller.blocks.first.text, '# Header');
+    });
+
+    test('InMemoryBackend insert and delete operations', () {
+      final backend = InMemoryBackend(initialText: 'hello');
+
+      backend.insert(5, ' world');
+      expect(backend.text, 'hello world');
+
+      backend.delete(5, 6);
+      expect(backend.text, 'hello');
+
+      backend.delete(0, 2);
+      expect(backend.text, 'llo');
+
+      backend.insert(0, 'he');
+      expect(backend.text, 'hello');
+
+      // Mid-string insertion
+      backend.insert(2, 'yyy');
+      expect(backend.text, 'heyyyllo');
+
+      // Mid-string deletion
+      backend.delete(2, 3);
+      expect(backend.text, 'hello');
     });
   });
 }

@@ -8,11 +8,11 @@ abstract class DocumentBackend extends ChangeNotifier {
   /// The current full text of the document.
   String get text;
 
-  /// Updates the entire document text.
-  void updateText(String newText);
+  /// Insert [text] at the given [position].
+  void insert(int position, String text);
 
-  /// Updates the local user's selection in the backend for awareness.
-  void updateSelection(int anchor, int head) {}
+  /// Delete [count] characters starting at [position].
+  void delete(int position, int count);
 
   /// Closes any resources held by the backend.
   @override
