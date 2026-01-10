@@ -299,10 +299,29 @@ class MarkdownTextEditingController extends TextEditingController {
     return _renderNode(document, style ?? const TextStyle(), null);
   }
 
+  /// Checks if the node should be revealed based on cursor proximity.
+  bool _shouldRevealNode(Node node) {
+    // If no valid selection, don't reveal (unless we want some default behavior)
+    if (selection.baseOffset == -1) return false;
+
+    final cursor = selection.baseOffset;
+
+    // Simple proximity: cursor within node boundaries
+    // We might want to expand this slightly (e.g. +/- 1 char) in the future
+    return cursor >= node.start && cursor <= node.end;
+  }
+
   TextSpan _renderNode(Node node, TextStyle currentStyle, Node? parent) {
     // Handle TextNode - special case for list items and headers
     if (node is TextNode) {
-      if (isWysiwygMode) {
+      // Determine if visual replacement should happen
+      // We perform replacement if WYSIWYG is ON AND the parent is NOT revealed
+      bool shouldHideMarkers = isWysiwygMode;
+      if (parent != null && _shouldRevealNode(parent)) {
+        shouldHideMarkers = false;
+      }
+
+      if (shouldHideMarkers) {
         // Case 1: List Items
         if (parent is ListItemNode) {
           final nodeText = node.text;
@@ -390,12 +409,15 @@ class MarkdownTextEditingController extends TextEditingController {
         newStyle = newStyle.copyWith(color: Colors.grey);
       }
 
+      // Determine if we should reveal this node's control characters
+      bool shouldRevealSelf = _shouldRevealNode(node);
+
       int currentPos = node.start;
 
       for (final child in node.children) {
         if (child.start > currentPos) {
           final gapText = text.substring(currentPos, child.start);
-          if (isWysiwygMode) {
+          if (isWysiwygMode && !shouldRevealSelf) {
             // Zero-width rendering for control chars
             childrenSpans.add(
               TextSpan(
@@ -410,7 +432,7 @@ class MarkdownTextEditingController extends TextEditingController {
               ),
             );
           } else {
-            // Normal mode: show control chars in grey
+            // Normal mode OR revealed: show control chars in grey
             childrenSpans.add(
               TextSpan(
                 text: gapText,
@@ -426,7 +448,7 @@ class MarkdownTextEditingController extends TextEditingController {
 
       if (currentPos < node.end) {
         final gapText = text.substring(currentPos, node.end);
-        if (isWysiwygMode) {
+        if (isWysiwygMode && !shouldRevealSelf) {
           // Zero-width rendering: control chars are present but invisible
           childrenSpans.add(
             TextSpan(
@@ -441,7 +463,7 @@ class MarkdownTextEditingController extends TextEditingController {
             ),
           );
         } else {
-          // Normal mode: show control chars in grey
+          // Normal mode OR revealed: show control chars in grey
           childrenSpans.add(
             TextSpan(
               text: gapText,

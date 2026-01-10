@@ -441,5 +441,128 @@ void main() {
         reason: 'Control chars must use height:0 and spacing:0',
       );
     });
+
+    group('Reveal-on-Proximity', () {
+      testWidgets('reveals bold markers when cursor is inside', (tester) async {
+        final controller = MarkdownTextEditingController(
+          text: '**bold**',
+          isWysiwygMode: true,
+        );
+        // Place cursor inside "bold" (offset 3)
+        controller.selection = const TextSelection.collapsed(offset: 3);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(body: TextField(controller: controller)),
+          ),
+        );
+
+        final span = controller.buildTextSpan(
+          context: tester.element(find.byType(TextField)),
+          withComposing: false,
+        );
+
+        // Should find visible "**" marker (no zero-width style)
+        bool foundVisibleMarker = false;
+        void checkSpan(InlineSpan s) {
+          if (s is TextSpan) {
+            if (s.text == '**' && (s.style?.fontSize ?? 14) > 0) {
+              foundVisibleMarker = true;
+            }
+            s.children?.forEach(checkSpan);
+          }
+        }
+
+        span.children?.forEach(checkSpan);
+
+        expect(
+          foundVisibleMarker,
+          isTrue,
+          reason: 'Markers should be visible when cursor is inside',
+        );
+      });
+
+      testWidgets('hides bold markers when cursor is outside', (tester) async {
+        final controller = MarkdownTextEditingController(
+          text: '**bold** outside',
+          isWysiwygMode: true,
+        );
+        // Place cursor outside (offset 10)
+        controller.selection = const TextSelection.collapsed(offset: 10);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(body: TextField(controller: controller)),
+          ),
+        );
+
+        final span = controller.buildTextSpan(
+          context: tester.element(find.byType(TextField)),
+          withComposing: false,
+        );
+
+        // Should find zero-width "**" marker
+        bool foundHiddenMarker = false;
+        void checkSpan(InlineSpan s) {
+          if (s is TextSpan) {
+            if (s.text == '**' && s.style?.fontSize == 0) {
+              foundHiddenMarker = true;
+            }
+            s.children?.forEach(checkSpan);
+          }
+        }
+
+        span.children?.forEach(checkSpan);
+
+        expect(
+          foundHiddenMarker,
+          isTrue,
+          reason: 'Markers should be hidden when cursor is outside',
+        );
+      });
+
+      testWidgets('reveals list marker when cursor is on line', (tester) async {
+        final controller = MarkdownTextEditingController(
+          text: '- item',
+          isWysiwygMode: true,
+        );
+        // Cursor on line
+        controller.selection = const TextSelection.collapsed(offset: 3);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(body: TextField(controller: controller)),
+          ),
+        );
+
+        final span = controller.buildTextSpan(
+          context: tester.element(find.byType(TextField)),
+          withComposing: false,
+        );
+
+        // Should find raw "- " (no bullet replacement)
+        bool foundRawMarker = false;
+        void checkSpan(InlineSpan s) {
+          if (s is TextSpan) {
+            // If revealed, we just render the text node normally
+            // The text node starts with "- item"
+            // But wait, the controller renders children recursively.
+            // If I render the TextNode for "- item", it comes as one string "- item".
+            if (s.text?.startsWith('- ') == true) {
+              foundRawMarker = true;
+            }
+            s.children?.forEach(checkSpan);
+          }
+        }
+
+        span.children?.forEach(checkSpan);
+
+        expect(
+          foundRawMarker,
+          isTrue,
+          reason: 'Should show raw "- " marker when cursor is on line',
+        );
+      });
+    });
   });
 }
