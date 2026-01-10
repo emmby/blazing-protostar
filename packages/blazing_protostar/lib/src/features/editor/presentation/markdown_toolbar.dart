@@ -4,7 +4,18 @@ import 'package:blazing_protostar/src/features/editor/presentation/markdown_text
 class MarkdownToolbar extends StatelessWidget {
   final MarkdownTextEditingController controller;
 
-  const MarkdownToolbar({super.key, required this.controller});
+  /// Whether WYSIWYG mode is currently active.
+  final bool isWysiwygMode;
+
+  /// Callback when WYSIWYG toggle is pressed.
+  final VoidCallback? onWysiwygToggle;
+
+  const MarkdownToolbar({
+    super.key,
+    required this.controller,
+    this.isWysiwygMode = false,
+    this.onWysiwygToggle,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -63,6 +74,15 @@ class MarkdownToolbar extends StatelessWidget {
                 onPressed: () => controller.applyFormat('link'),
                 tooltip: 'Link',
               ),
+              if (onWysiwygToggle != null) ...[
+                const VerticalDivider(width: 16, indent: 12, endIndent: 12),
+                _ToolbarButton(
+                  icon: Icons.code,
+                  isActive: isWysiwygMode,
+                  onPressed: onWysiwygToggle!,
+                  tooltip: isWysiwygMode ? 'Show Markdown' : 'Hide Markdown',
+                ),
+              ],
             ],
           );
         },

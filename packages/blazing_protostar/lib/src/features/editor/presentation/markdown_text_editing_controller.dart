@@ -19,6 +19,10 @@ class MarkdownTextEditingController extends TextEditingController {
   // Reactive State for the Toolbar
   final ValueNotifier<Set<String>> activeStyles = ValueNotifier({});
 
+  /// WYSIWYG mode: when true, control characters (**, _, #, etc.) are hidden.
+  /// This can be toggled at runtime.
+  bool isWysiwygMode;
+
   DocumentNode? _lastParsedDocument;
 
   MarkdownTextEditingController({
@@ -26,6 +30,7 @@ class MarkdownTextEditingController extends TextEditingController {
     MarkdownParser parser = const MarkdownParser(),
     DocumentBackend? backend,
     Duration throttleDuration = const Duration(milliseconds: 16),
+    this.isWysiwygMode = false,
   }) : _parser = parser,
        _backend = backend ?? InMemoryBackend(initialText: text ?? ''),
        super(text: text ?? backend?.text) {
@@ -334,12 +339,24 @@ class MarkdownTextEditingController extends TextEditingController {
       for (final child in node.children) {
         if (child.start > currentPos) {
           final gapText = text.substring(currentPos, child.start);
-          childrenSpans.add(
-            TextSpan(
-              text: gapText,
-              style: currentStyle.copyWith(color: Colors.grey),
-            ),
-          );
+          // In WYSIWYG mode, only hide control characters, not whitespace
+          if (isWysiwygMode) {
+            // Preserve whitespace (newlines, spaces) but hide control chars
+            final whitespaceOnly = gapText.replaceAll(RegExp(r'[^\s]'), '');
+            if (whitespaceOnly.isNotEmpty) {
+              childrenSpans.add(
+                TextSpan(text: whitespaceOnly, style: currentStyle),
+              );
+            }
+          } else {
+            // Normal mode: show everything in grey
+            childrenSpans.add(
+              TextSpan(
+                text: gapText,
+                style: currentStyle.copyWith(color: Colors.grey),
+              ),
+            );
+          }
         }
 
         childrenSpans.add(_renderNode(child, newStyle));
@@ -348,12 +365,24 @@ class MarkdownTextEditingController extends TextEditingController {
 
       if (currentPos < node.end) {
         final gapText = text.substring(currentPos, node.end);
-        childrenSpans.add(
-          TextSpan(
-            text: gapText,
-            style: currentStyle.copyWith(color: Colors.grey),
-          ),
-        );
+        // In WYSIWYG mode, only hide control characters, not whitespace
+        if (isWysiwygMode) {
+          // Preserve whitespace (newlines, spaces) but hide control chars
+          final whitespaceOnly = gapText.replaceAll(RegExp(r'[^\s]'), '');
+          if (whitespaceOnly.isNotEmpty) {
+            childrenSpans.add(
+              TextSpan(text: whitespaceOnly, style: currentStyle),
+            );
+          }
+        } else {
+          // Normal mode: show everything in grey
+          childrenSpans.add(
+            TextSpan(
+              text: gapText,
+              style: currentStyle.copyWith(color: Colors.grey),
+            ),
+          );
+        }
       }
 
       return TextSpan(children: childrenSpans);

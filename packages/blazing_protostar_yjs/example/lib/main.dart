@@ -61,6 +61,12 @@ class _EditorHomeState extends State<EditorHome> {
     _controller = MarkdownTextEditingController(backend: backend);
   }
 
+  void _toggleWysiwygMode() {
+    setState(() {
+      _controller!.isWysiwygMode = !_controller!.isWysiwygMode;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -100,7 +106,11 @@ class _EditorHomeState extends State<EditorHome> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            MarkdownToolbar(controller: _controller!),
+            MarkdownToolbar(
+              controller: _controller!,
+              isWysiwygMode: _controller!.isWysiwygMode,
+              onWysiwygToggle: _toggleWysiwygMode,
+            ),
             const SizedBox(height: 16),
             Expanded(
               child: Container(

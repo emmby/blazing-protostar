@@ -31,6 +31,12 @@ class _MarkdownEditorScreenState extends State<MarkdownEditorScreen> {
     super.dispose();
   }
 
+  void _toggleWysiwygMode() {
+    setState(() {
+      _controller.isWysiwygMode = !_controller.isWysiwygMode;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -54,7 +60,11 @@ class _MarkdownEditorScreenState extends State<MarkdownEditorScreen> {
       ),
       body: Column(
         children: [
-          MarkdownToolbar(controller: _controller),
+          MarkdownToolbar(
+            controller: _controller,
+            isWysiwygMode: _controller.isWysiwygMode,
+            onWysiwygToggle: _toggleWysiwygMode,
+          ),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.all(16.0),

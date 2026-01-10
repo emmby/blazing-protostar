@@ -24,6 +24,8 @@ class DualEditorTestState extends State<DualEditorTest> {
   bool testRunning = false;
   String testResult = '';
   bool _stepBusy = false;
+  bool _wysiwyg1 = false;
+  bool _wysiwyg2 = false;
 
   @override
   void initState() {
@@ -257,7 +259,21 @@ class DualEditorTestState extends State<DualEditorTest> {
           ),
         ),
         // Markdown Toolbar
-        MarkdownToolbar(controller: controller),
+        MarkdownToolbar(
+          controller: controller,
+          isWysiwygMode: controller == controller1 ? _wysiwyg1 : _wysiwyg2,
+          onWysiwygToggle: () {
+            setState(() {
+              if (controller == controller1) {
+                _wysiwyg1 = !_wysiwyg1;
+                controller1.isWysiwygMode = _wysiwyg1;
+              } else {
+                _wysiwyg2 = !_wysiwyg2;
+                controller2.isWysiwygMode = _wysiwyg2;
+              }
+            });
+          },
+        ),
         const Divider(height: 1),
         // Markdown Editor
         Expanded(

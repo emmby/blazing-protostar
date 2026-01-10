@@ -224,4 +224,85 @@ void main() {
       Colors.blue,
     ); // link color
   });
+
+  group('WYSIWYG Mode', () {
+    testWidgets('hides control characters when enabled', (tester) async {
+      final controller = MarkdownTextEditingController(
+        text: 'Hello **Bold**',
+        isWysiwygMode: true,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: TextField(controller: controller)),
+        ),
+      );
+
+      final span = controller.buildTextSpan(
+        context: tester.element(find.byType(TextField)),
+        withComposing: false,
+      );
+
+      // In WYSIWYG mode, control characters (**) should be hidden
+      // The full text span should NOT contain "**"
+      final plainText = span.toPlainText();
+      expect(plainText, 'Hello Bold');
+      expect(plainText.contains('**'), isFalse);
+    });
+
+    testWidgets('shows control characters when disabled', (tester) async {
+      final controller = MarkdownTextEditingController(
+        text: 'Hello **Bold**',
+        isWysiwygMode: false,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: TextField(controller: controller)),
+        ),
+      );
+
+      final span = controller.buildTextSpan(
+        context: tester.element(find.byType(TextField)),
+        withComposing: false,
+      );
+
+      // In normal mode, control characters should be visible
+      final plainText = span.toPlainText();
+      expect(plainText, 'Hello **Bold**');
+    });
+
+    testWidgets('preserves styling in WYSIWYG mode', (tester) async {
+      final controller = MarkdownTextEditingController(
+        text: 'Hello **Bold**',
+        isWysiwygMode: true,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: TextField(controller: controller)),
+        ),
+      );
+
+      final span = controller.buildTextSpan(
+        context: tester.element(find.byType(TextField)),
+        withComposing: false,
+      );
+
+      // Find the bold text span and verify it has bold styling
+      bool foundBoldStyle = false;
+      void checkSpan(InlineSpan s) {
+        if (s is TextSpan) {
+          if (s.text == 'Bold' && s.style?.fontWeight == FontWeight.bold) {
+            foundBoldStyle = true;
+          }
+          s.children?.forEach(checkSpan);
+        }
+      }
+
+      span.children?.forEach(checkSpan);
+
+      expect(foundBoldStyle, isTrue);
+    });
+  });
 }
