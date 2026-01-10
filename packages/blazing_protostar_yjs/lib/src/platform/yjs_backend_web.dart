@@ -1,4 +1,5 @@
 import 'dart:js_interop';
+import 'dart:math';
 import 'package:blazing_protostar/blazing_protostar.dart';
 
 @JS('YjsBridge')
@@ -7,27 +8,46 @@ external JSObject? get _yjsBridgeGlobal;
 @JS('YjsBridge')
 extension type _YjsBridge._(JSObject _) implements JSObject {
   external String getText();
-  external void insert(int position, String text);
-  external void delete(int position, int count);
-  external void onUpdate(JSFunction callback);
-  external void undo();
-  external void redo();
+  external void registerClient(String clientId, JSFunction callback);
+  external void unregisterClient(String clientId);
+  external void insert(String clientId, int position, String text);
+  external void delete(String clientId, int position, int count);
+  external void undo(String clientId);
+  external void redo(String clientId);
   external bool canUndo();
   external bool canRedo();
 }
 
+/// Generates a unique client ID for each backend instance.
+String _generateClientId() {
+  final random = Random();
+  final bytes = List.generate(16, (_) => random.nextInt(256));
+  return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+}
+
 /// A [DocumentBackend] implementation that syncs via Y.js BroadcastChannel.
+///
+/// Each instance gets a unique client ID, enabling multiple editors in the
+/// same page to sync properly while also syncing across browser tabs.
 ///
 /// Includes undo/redo support via Y.js UndoManager.
 class YjsDocumentBackend extends DocumentBackend {
   final _YjsBridge _bridge;
+  final String _clientId;
 
-  YjsDocumentBackend(this._bridge) {
-    _bridge.onUpdate(
+  YjsDocumentBackend._(this._bridge, this._clientId) {
+    _bridge.registerClient(
+      _clientId,
       ((JSString text) {
         notifyListeners();
       }).toJS,
     );
+  }
+
+  /// Creates a new [YjsDocumentBackend] with a unique client ID.
+  factory YjsDocumentBackend(JSObject bridge) {
+    final clientId = _generateClientId();
+    return YjsDocumentBackend._(bridge as _YjsBridge, clientId);
   }
 
   @override
@@ -36,26 +56,32 @@ class YjsDocumentBackend extends DocumentBackend {
   @override
   void insert(int position, String text) {
     if (text.isEmpty) return;
-    _bridge.insert(position, text);
+    _bridge.insert(_clientId, position, text);
   }
 
   @override
   void delete(int position, int count) {
     if (count <= 0) return;
-    _bridge.delete(position, count);
+    _bridge.delete(_clientId, position, count);
   }
 
   /// Undo the last local operation.
-  void undo() => _bridge.undo();
+  void undo() => _bridge.undo(_clientId);
 
   /// Redo the last undone operation.
-  void redo() => _bridge.redo();
+  void redo() => _bridge.redo(_clientId);
 
   /// Whether there are operations that can be undone.
   bool get canUndo => _bridge.canUndo();
 
   /// Whether there are operations that can be redone.
   bool get canRedo => _bridge.canRedo();
+
+  @override
+  void dispose() {
+    _bridge.unregisterClient(_clientId);
+    super.dispose();
+  }
 }
 
 DocumentBackend createYjsBackend() {
@@ -65,5 +91,5 @@ DocumentBackend createYjsBackend() {
       'YjsBridge not found. Did you forget to include yjs_bridge.js in your index.html?',
     );
   }
-  return YjsDocumentBackend(bridge as _YjsBridge);
+  return YjsDocumentBackend(bridge);
 }
