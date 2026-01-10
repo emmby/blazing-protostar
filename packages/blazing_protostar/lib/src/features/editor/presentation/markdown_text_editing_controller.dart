@@ -320,6 +320,9 @@ class MarkdownTextEditingController extends TextEditingController {
                 style: currentStyle.copyWith(
                   fontSize: 0,
                   color: Colors.transparent,
+                  letterSpacing: 0,
+                  wordSpacing: 0,
+                  height: 0,
                 ),
               ),
               // Add visible bullet
@@ -376,6 +379,9 @@ class MarkdownTextEditingController extends TextEditingController {
                 style: currentStyle.copyWith(
                   fontSize: 0,
                   color: Colors.transparent,
+                  letterSpacing: 0,
+                  wordSpacing: 0,
+                  height: 0,
                 ),
               ),
             );
@@ -404,6 +410,9 @@ class MarkdownTextEditingController extends TextEditingController {
               style: currentStyle.copyWith(
                 fontSize: 0, // Truly zero-width
                 color: Colors.transparent,
+                letterSpacing: 0,
+                wordSpacing: 0,
+                height: 0,
               ),
             ),
           );
