@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:blazing_protostar/src/features/editor/domain/models/node.dart';
 
 class AstToHtmlRenderer implements NodeVisitor<String> {
@@ -46,9 +47,6 @@ class AstToHtmlRenderer implements NodeVisitor<String> {
 
   @override
   String visitText(TextNode node) {
-    // Basic HTML escaping might be needed for spec compliance
-    // (e.g. < -> &lt;)
-    // For now, raw.
-    return node.text;
+    return htmlEscape.convert(node.text);
   }
 }
