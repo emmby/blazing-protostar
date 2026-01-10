@@ -48,6 +48,7 @@ class DualEditorTestState extends State<DualEditorTest> {
   Future<bool> runConvergenceFuzzTest({
     int iterations = 50,
     int seed = 42,
+    Future<void> Function()? onStep,
   }) async {
     if (backend1 == null || backend2 == null) {
       setState(() => testResult = 'Error: Yjs backends not available');
@@ -68,6 +69,13 @@ class DualEditorTestState extends State<DualEditorTest> {
     await Future.delayed(const Duration(milliseconds: 50));
 
     for (var i = 0; i < iterations; i++) {
+      setState(() {
+        testResult = 'Running operation ${i + 1}/$iterations...';
+      });
+
+      // Random delay to make operations visible (200-500ms)
+      await Future.delayed(Duration(milliseconds: 200 + random.nextInt(300)));
+
       // Alternate between editors, or randomly pick one
       final targetController = random.nextBool() ? controller1 : controller2;
       final currentText = targetController.text;
@@ -100,8 +108,16 @@ class DualEditorTestState extends State<DualEditorTest> {
             currentText.substring(pos + 1);
       }
 
-      // Small delay to allow sync
-      await Future.delayed(const Duration(milliseconds: 10));
+      // Rebuild UI
+      setState(() {});
+
+      // Call onStep to allow frame pumping in integration tests
+      if (onStep != null) {
+        await onStep();
+      }
+
+      // Small delay after op for stability/sync
+      await Future.delayed(const Duration(milliseconds: 50));
     }
 
     // Wait for final sync

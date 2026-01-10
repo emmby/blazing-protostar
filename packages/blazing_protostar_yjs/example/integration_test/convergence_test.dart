@@ -22,6 +22,7 @@ void main() {
       final converged = await state.runConvergenceFuzzTest(
         iterations: 50,
         seed: 42,
+        onStep: () => tester.pump(),
       );
 
       // Pump to update UI
@@ -47,6 +48,7 @@ void main() {
       final converged = await state.runConvergenceFuzzTest(
         iterations: 100,
         seed: 123,
+        onStep: () => tester.pump(),
       );
 
       await tester.pumpAndSettle();
@@ -74,6 +76,7 @@ void main() {
         final converged = await state.runConvergenceFuzzTest(
           iterations: 30,
           seed: seed,
+          onStep: () => tester.pump(),
         );
 
         await tester.pumpAndSettle();
