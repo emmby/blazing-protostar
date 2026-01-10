@@ -318,5 +318,40 @@ void main() {
 
       expect(foundBoldStyle, isTrue);
     });
+
+    testWidgets('hides header markers in WYSIWYG mode', (tester) async {
+      final controller = MarkdownTextEditingController(
+        text: '# Header',
+        isWysiwygMode: true,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(body: TextField(controller: controller)),
+        ),
+      );
+
+      final span = controller.buildTextSpan(
+        context: tester.element(find.byType(TextField)),
+        withComposing: false,
+      );
+
+      bool foundHiddenMarker = false;
+      void checkSpan(InlineSpan s) {
+        if (s is TextSpan) {
+          if (s.text == '# ' &&
+              s.style?.fontSize == 0 &&
+              s.style?.color == Colors.transparent &&
+              s.style?.letterSpacing == 0) {
+            foundHiddenMarker = true;
+          }
+          s.children?.forEach(checkSpan);
+        }
+      }
+
+      span.children?.forEach(checkSpan);
+
+      expect(foundHiddenMarker, isTrue);
+    });
   });
 }

@@ -300,40 +300,64 @@ class MarkdownTextEditingController extends TextEditingController {
   }
 
   TextSpan _renderNode(Node node, TextStyle currentStyle, Node? parent) {
-    // Handle TextNode - special case for list items
+    // Handle TextNode - special case for list items and headers
     if (node is TextNode) {
-      // If parent is ListItemNode and WYSIWYG mode, handle the marker
-      if (isWysiwygMode && parent is ListItemNode) {
-        final nodeText = node.text;
-        // Match the list marker at start of text (e.g., "- " or "* " or "+ ")
-        final markerMatch = RegExp(r'^([*+-])[ \t]+').firstMatch(nodeText);
-        if (markerMatch != null) {
-          final markerLength = markerMatch.end;
-          final markerText = nodeText.substring(0, markerLength);
-          final contentText = nodeText.substring(markerLength);
+      if (isWysiwygMode) {
+        // Case 1: List Items
+        if (parent is ListItemNode) {
+          final nodeText = node.text;
+          // Match the list marker at start of text (e.g., "- " or "* " or "+ ")
+          final markerMatch = RegExp(r'^([*+-])[ \t]+').firstMatch(nodeText);
+          if (markerMatch != null) {
+            final markerLength = markerMatch.end;
+            final markerText = nodeText.substring(0, markerLength);
+            final contentText = nodeText.substring(markerLength);
 
-          return TextSpan(
-            children: [
-              // Render marker as zero-width (for offset alignment)
-              TextSpan(
-                text: markerText,
-                style: currentStyle.copyWith(
-                  fontSize: 0,
-                  color: Colors.transparent,
-                  letterSpacing: 0,
-                  wordSpacing: 0,
-                  height: 0,
+            // Create a replacement string of exact same length
+            // e.g. "- " -> "• "
+            // This preserves offsets for cursor navigation
+            final replacementText = '•${markerText.substring(1)}';
+
+            return TextSpan(
+              children: [
+                // Render visible bullet replacement
+                TextSpan(
+                  text: replacementText,
+                  style: currentStyle.copyWith(color: Colors.grey.shade600),
                 ),
-              ),
-              // Add visible bullet
-              TextSpan(
-                text: '• ',
-                style: currentStyle.copyWith(color: Colors.grey.shade600),
-              ),
-              // Render remaining content normally
-              TextSpan(text: contentText, style: currentStyle),
-            ],
-          );
+                // Render remaining content normally
+                TextSpan(text: contentText, style: currentStyle),
+              ],
+            );
+          }
+        }
+
+        // Case 2: Headers
+        if (parent is HeaderNode) {
+          final nodeText = node.text;
+          // Match ATX header marker (e.g. "## ")
+          final markerMatch = RegExp(r'^(#{1,6})[ \t]+').firstMatch(nodeText);
+          if (markerMatch != null) {
+            final markerLength = markerMatch.end;
+            final markerText = nodeText.substring(0, markerLength);
+            final contentText = nodeText.substring(markerLength);
+
+            return TextSpan(
+              children: [
+                TextSpan(
+                  text: markerText,
+                  style: currentStyle.copyWith(
+                    fontSize: 0,
+                    color: Colors.transparent,
+                    letterSpacing: 0,
+                    wordSpacing: 0,
+                    height: 0,
+                  ),
+                ),
+                TextSpan(text: contentText, style: currentStyle),
+              ],
+            );
+          }
         }
       }
       return TextSpan(text: node.text, style: currentStyle);
