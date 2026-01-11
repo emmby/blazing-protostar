@@ -39,8 +39,8 @@ This document tracks the requirements and implementation phases for adding CRDT 
     - The `YDoc` represents the document as a `Y.Array<Y.Map>`.
     - Each `Y.Map` contains:
         - `text`: `Y.Text` (The raw characters, including syntax like `##` or `> `).
-        - `type`: (String metadata like "header", "blockquote").
-- **Decision**: **Text-as-Canonical-Source**. The raw string content in Y.js `text` properties is the source of truth for the parser. The `type` field is an optimization.
+    - We intentionally **omit** a `type` field to avoid "Dual Truth" ambiguity. The parser alone determines the block type from the `text`.
+- **Decision**: **Text-as-Canonical-Source**. The raw string content in Y.js `text` properties is the source of truth for the parser. We will **omit** the `type` field to ensure the parser remains the single source of truth.
 
 ### [Question 6: Undo/Redo Strategy]
 - **Status**: Decided
