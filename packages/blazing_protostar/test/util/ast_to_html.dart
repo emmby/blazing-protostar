@@ -21,8 +21,27 @@ class AstToHtmlRenderer implements NodeVisitor<String> {
     } else if (node is HeaderNode) {
       // Strip leading hashes/whitespace from the content string for spec compliance.
       // e.g. "# Hex" -> "Hex"
-      // Note: We access the raw content from children, which currently includes the syntax.
-      final cleanContent = content.replaceAll(RegExp(r'^#{1,6}[ \t]*'), '');
+      // 1. Strip leading hashes (allow up to 3 spaces indent)
+      // Note: We use replaceFirst to only remove the opening syntax
+      var cleanContent = content.replaceFirst(
+        RegExp(r'^[ ]{0,3}#{1,6}[ \t]*'),
+        '',
+      );
+
+      // 2. Strip trailing hashes (must be preceded by space)
+      // We look for " space + hashes + optional space + EOL"
+      cleanContent = cleanContent.replaceFirst(RegExp(r'[ \t]+#+[ \t]*$'), '');
+
+      // Special case: If content is NOW just hashes (e.g. "### ###" -> "###"),
+      // it means the leading strip consumed the separator space.
+      // Since it's a valid Header, these are closing hashes.
+      if (RegExp(r'^#+[ \t]*$').hasMatch(cleanContent)) {
+        cleanContent = '';
+      }
+
+      // 3. Trim remaining whitespace (CommonMark trims header content)
+      cleanContent = cleanContent.trim();
+
       return '<h${node.level}>$cleanContent</h${node.level}>\n';
     } else if (node is ParagraphNode) {
       return '<p>$content</p>\n';

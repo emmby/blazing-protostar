@@ -30,8 +30,10 @@ class BlockParser {
       final line = _lines[lineIndex];
       final offset = _lineOffsets[lineIndex];
 
-      // 1. Check for ATX Header
-      final headerMatch = RegExp(r'^(#{1,6})(?:[ \t]+|$)').firstMatch(line);
+      // 1. Check for ATX Header (allows up to 3 spaces indentation)
+      final headerMatch = RegExp(
+        r'^[ ]{0,3}(#{1,6})(?:[ \t]+|$)',
+      ).firstMatch(line);
       if (headerMatch != null) {
         final level = headerMatch.group(1)!.length;
         children.add(

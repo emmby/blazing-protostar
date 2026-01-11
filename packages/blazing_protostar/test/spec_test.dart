@@ -46,15 +46,10 @@ void main() {
         // Headings: Strict indentation and syntax handling
         // The editor parser is lenient with indentation (User Friendly) vs Spec (Strict)
         // and retains closing syntax # characters for WYSIWYG display.
-        67: 'Editor preserves trailing whitespace for editing fidelity (vs Spec stripping it)',
-        68: 'Editor requires headers to start at adjacent to margin (No leading whitespace support yet)',
         69: 'Editor allows indented headers (Spec strictness requires 4 spaces to be Code Block)',
         70: 'Editor allows indented headers (Spec strictness requires 4 spaces to be Code Block)',
-        71: 'Editor preserves closing hash syntax for WYSIWYG visibility (Spec strips it)',
-        72: 'Editor preserves closing hash syntax for WYSIWYG visibility (Spec strips it)',
-        73: 'Editor preserves closing hash syntax for WYSIWYG visibility (Spec strips it)',
+        76: 'Header with escaped closing hashes (Escaping not fully handled in Test Renderer)',
         77: 'Horizontal Rule (****) not yet implemented',
-        79: 'Editor preserves header syntax markers in AST (Spec expects purely content)',
 
         // Lists: Whitespace
         353: 'Complex whitespace handling in list markers',
