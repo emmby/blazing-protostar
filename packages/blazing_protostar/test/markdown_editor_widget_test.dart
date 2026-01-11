@@ -37,4 +37,42 @@ void main() {
     expect(find.byType(MarkdownToolbar), findsNothing);
     expect(find.byType(TextField), findsOneWidget);
   });
+
+  testWidgets('MarkdownEditor respects expands: false (Form Mode)', (
+    tester,
+  ) async {
+    final controller = MarkdownTextEditingController(text: 'Line 1\nLine 2');
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: Column(
+              children: [
+                const Text('Header'),
+                MarkdownEditor(
+                  controller: controller,
+                  expands: false, // Should allow scrolling parent
+                  maxLines: null, // Grow with content
+                  padding: const EdgeInsets.all(8.0),
+                ),
+                const Text('Footer'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // Verify it renders without overflow
+    expect(find.byType(MarkdownEditor), findsOneWidget);
+
+    // Verify padding is applied
+    final paddingWidget = tester.widget<Padding>(
+      find
+          .ancestor(of: find.byType(TextField), matching: find.byType(Padding))
+          .first,
+    );
+    expect(paddingWidget.padding, const EdgeInsets.all(8.0));
+  });
 }

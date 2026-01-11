@@ -15,7 +15,26 @@ class MarkdownEditor extends StatefulWidget {
   final bool readOnly;
 
   /// Optional focus node.
+  /// Optional focus node.
   final FocusNode? focusNode;
+
+  /// Whether the editor should expand to fill the available space.
+  ///
+  /// If true, the editor uses an [Expanded] widget to fill the parent.
+  /// If false, it sizes itself to its content (plus minLines).
+  final bool expands;
+
+  /// The padding around the input field.
+  final EdgeInsetsGeometry? padding;
+
+  /// The decoration to show around the text field.
+  final InputDecoration? decoration;
+
+  /// The minimum number of lines to show.
+  final int? minLines;
+
+  /// The maximum number of lines to show.
+  final int? maxLines;
 
   const MarkdownEditor({
     super.key,
@@ -23,6 +42,11 @@ class MarkdownEditor extends StatefulWidget {
     this.toolbarVisible = true,
     this.readOnly = false,
     this.focusNode,
+    this.expands = true,
+    this.padding,
+    this.decoration,
+    this.minLines,
+    this.maxLines,
   });
 
   @override
@@ -69,7 +93,44 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
 
   @override
   Widget build(BuildContext context) {
+    // The standard decoration if none is provided
+    final effectiveDecoration =
+        (widget.decoration ??
+                const InputDecoration(
+                  border: InputBorder.none,
+                  hintText: 'Start writing...',
+                ))
+            .copyWith(
+              // We apply padding via contentPadding if it's not expanding,
+              // or generally if provided. But usually padding is better around the TextField?
+              // Actually, standard is to put padding in contentPadding or wrap in Padding.
+              // If we wrap in Padding, we shrink the scrollable area.
+              // Let's use Padding widget for simplicity, as it matches "padding around the input".
+            );
+
+    Widget editorField = TextField(
+      controller: widget.controller,
+      focusNode: widget.focusNode,
+      readOnly: widget.readOnly,
+      maxLines: widget.expands ? null : widget.maxLines,
+      minLines: widget.expands ? null : widget.minLines,
+      expands: widget.expands,
+      decoration: effectiveDecoration,
+    );
+
+    // Apply Padding
+    editorField = Padding(
+      padding: widget.padding ?? const EdgeInsets.all(16.0),
+      child: editorField,
+    );
+
+    if (widget.expands) {
+      editorField = Expanded(child: editorField);
+    }
+
     return Column(
+      mainAxisSize: widget.expands ? MainAxisSize.max : MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (widget.toolbarVisible)
           MarkdownToolbar(
@@ -77,22 +138,7 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
             isWysiwygMode: widget.controller.isWysiwygMode,
             onWysiwygToggle: _toggleWysiwygMode,
           ),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: TextField(
-              controller: widget.controller,
-              focusNode: widget.focusNode,
-              readOnly: widget.readOnly,
-              maxLines: null,
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-                hintText: 'Start writing...',
-              ),
-              // We might want to expose more configuration here later
-            ),
-          ),
-        ),
+        editorField,
       ],
     );
   }
