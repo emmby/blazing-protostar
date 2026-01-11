@@ -15,9 +15,12 @@ This document tracks the requirements and implementation phases for adding CRDT 
     - **Mobile/Desktop**: Use an embedded JS engine (e.g., `flutter_js`) to run the Yjs logic. This ensures a single source of truth for CRDT math while avoiding the memory management issues of the current `y_crdt` WASM package.
 
 ### [Question 2: Sync Granularity & Structure]
-- **Status**: Decided (Structured Tree)
+- **Status**: Decided (Phase 1: Flat Text)
 - **Question**: Should the CRDT sync the raw Markdown source string or a structured semantic representation?
-- **Decision**: **Structured Tree**. We will sync block-level nodes (paragraphs, headers, lists) as separate entities (likely `Y.Map` inside a `Y.Array` or `Y.XmlFragment`).
+- **Decision**: **Flat Text (Phase 1)**.
+    - We will use a single `Y.Text` (rope) to represent the entire document.
+    - **Rationale**: This is the standard approach for rich text editors (ProseMirror, Quill, Monaco) binding to Yjs. It performs efficiently ($O(\log N)$) even for large documents and avoids the complexity of dual-tree synchronization for the MVP.
+    - **Future**: A structured tree approach remains an option for Phase 2 optimizations but is not required for correctness.
 
 ### [Question 3: Remote Presence & Awareness]
 - **Status**: Decided
@@ -28,19 +31,19 @@ This document tracks the requirements and implementation phases for adding CRDT 
     - **Styling**: Colored vertical bars for cursors; light colored backgrounds for selections.
 
 ### [Question 4: Delta API / State Architecture]
-- **Status**: Decided (Block-Aware Controller)
-- **Question**: Given the **Structured Tree** sync model, how should the internal state be managed?
-- **Decision**: **Option 2 (Block-Aware)**. The `MarkdownTextEditingController` will maintain a list of `BlockState` objects. Each maps to a `Y.Map` in the `YDoc`.
+- **Status**: Decided (Block-Aware Controller, Flat Backend)
+- **Question**: Given the **Flat Text** sync model, how should the internal state be managed?
+- **Decision**: **Hybrid Approach**.
+    - **Backend**: The Yjs backend syncs a flat string (`Y.Text`).
+    - **Controller**: The `MarkdownTextEditingController` maintains a local list of `BlockState` objects for rendering and logic, but applies changes to the flat backend string. Re-parsing is fast enough for the client.
 
 ### [Question 5: Markdown-to-Y.js Mapping]
-- **Status**: Pending (Proposed)
+- **Status**: Decided (Flat Mapping)
 - **Question**: How do we sync Markdown syntax (like `> ` or `- `) with CRDT block types?
 - **Proposal**: 
-    - The `YDoc` represents the document as a `Y.Array<Y.Map>`.
-    - Each `Y.Map` contains:
-        - `text`: `Y.Text` (The raw characters, including syntax like `##` or `> `).
-    - We intentionally **omit** a `type` field to avoid "Dual Truth" ambiguity. The parser alone determines the block type from the `text`.
-- **Decision**: **Text-as-Canonical-Source**. The raw string content in Y.js `text` properties is the source of truth for the parser. We will **omit** the `type` field to ensure the parser remains the single source of truth.
+    - The `YDoc` contains a single `Y.Text` field (defaulting to 'content').
+    - All markdown syntax is treated as raw characters within this text.
+- **Decision**: **Text-as-Canonical-Source**. The raw string content in Y.js `text` is the source of truth. The parser derives all structure from this linear text stream.
 
 ### [Question 6: Undo/Redo Strategy]
 - **Status**: Decided
