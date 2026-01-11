@@ -42,33 +42,37 @@ void main() {
       // These tests cover "multiple of 3" delimiter run arithmetic (e.g. *foo**bar**baz*)
       // which is pathological in practice. Implementing strict CommonMark run splitting
       // for these cases adds significant complexity for minimal MVP value.
-      const examplesToSkip = {
-        // Headings: Strict indentation and syntax handling
-        // The editor parser is lenient with indentation (User Friendly) vs Spec (Strict)
-        // and retains closing syntax # characters for WYSIWYG display.
-        69: 'Editor allows indented headers (Spec strictness requires 4 spaces to be Code Block)',
-        70: 'Editor allows indented headers (Spec strictness requires 4 spaces to be Code Block)',
-        76: 'Header with escaped closing hashes (Escaping not fully handled in Test Renderer)',
-        77: 'Horizontal Rule (****) not yet implemented',
+      final examplesToSkip = {
+        // Code Blocks: Indented code blocks not implemented
+        // Spec requires 4 spaces to start a code block. We treats these as indented headers/text for now.
+        69: 'Indented Code Blocks not implemented (4 spaces -> Code)',
+        70: 'Indented Code Blocks not implemented (4 spaces -> Code)',
 
-        // Lists: Whitespace
-        353: 'Complex whitespace handling in list markers',
-        354: 'Complex whitespace handling in list markers',
-        367: 'Block parser issue with * on newline',
+        // Escaping: Edge cases with closing hashes
+        76: 'Backslash escaping for closing hashes not fully implemented',
+
+        // Horizontal Rules
+        77: 'Horizontal Rules (***, ---, ___) not implemented',
+
+        // Lists: Complex whitespace/loose lists
+        353: 'List looseness/tightness whitespace logic not implemented',
+        354: 'List looseness/tightness whitespace logic not implemented',
+        367: 'Block breaking logic for * on newline not fully spec compliant',
 
         // Emphasis: Rule 9/10 Complex Nesting
         // "Multiple of 3" run splitting is computationally expensive and rare.
-        411: 'Rule 9/10: Complex mixed nesting',
-        412: 'Rule 9/10: Complex mixed nesting',
-        415: 'Rule 9/10: Complex mixed nesting',
-        429: 'Rule 9/10: Complex mixed nesting',
-        430: 'Rule 9/10: Complex mixed nesting',
+        // We chose not to implement the full mathematical recursion for these edge cases in MVP.
+        411: 'Rule 9/10: Complex run interaction (***foo**) not implemented',
+        412: 'Rule 9/10: Complex run interaction (***foo**) not implemented',
+        415: 'Rule 9/10: Complex run interaction (***foo**) not implemented',
+        429: 'Rule 9/10: Complex run interaction (***foo**) not implemented',
+        430: 'Rule 9/10: Complex run interaction (***foo**) not implemented',
 
-        // Links: Precedence
-        460: 'Link precedence edge cases',
-        464: 'Link precedence edge cases',
-        465: 'Link precedence edge cases',
-        477: 'Link nested brackets edge case',
+        // Links: Nested brackets and precedence
+        460: 'Link precedence rule (inner vs outer) not fully implemented',
+        464: 'Link precedence rule (inner vs outer) not fully implemented',
+        465: 'Link precedence rule (inner vs outer) not fully implemented',
+        477: 'Nested balanced brackets in links not fully implemented',
       };
 
       if (examplesToSkip.containsKey(exampleId)) {
