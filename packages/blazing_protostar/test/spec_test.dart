@@ -77,6 +77,7 @@ void main() {
 
       if (examplesToSkip.containsKey(exampleId)) {
         test('Example $exampleId (SKIPPED)', () {
+          // ignore: avoid_print
           print(
             'Skipping Example $exampleId: ${examplesToSkip[exampleId]} (Known Limitation)',
           );

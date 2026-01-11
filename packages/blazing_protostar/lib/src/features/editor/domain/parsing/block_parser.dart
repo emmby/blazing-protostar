@@ -123,7 +123,7 @@ class BlockParser {
         // Note: offsets might become non-contiguous if we aren't careful,
         // but our basic _splitLines ensures offsets are sequential (line N end + 1 = line N+1 start).
 
-        final newText = lastTextNode.text + '\n' + currentTextNode.text;
+        final newText = '${lastTextNode.text}\n${currentTextNode.text}';
 
         // Replace the last paragraph with a merged one
         mergedChildren.removeLast();

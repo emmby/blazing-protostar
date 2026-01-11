@@ -431,9 +431,9 @@ class InlineParser {
     int closeIndex = -1;
 
     for (int i = openBracketIndex + 1; i < tokens.length; i++) {
-      if (tokens[i].type == TokenType.openBracket)
+      if (tokens[i].type == TokenType.openBracket) {
         depth++;
-      else if (tokens[i].type == TokenType.closeBracket) {
+      } else if (tokens[i].type == TokenType.closeBracket) {
         depth--;
         if (depth == 0) {
           closeIndex = i;
@@ -454,9 +454,9 @@ class InlineParser {
 
     for (int i = openParenIndex + 1; i < tokens.length; i++) {
       final t = tokens[i];
-      if (t.type == TokenType.openParen)
+      if (t.type == TokenType.openParen) {
         pDepth++;
-      else if (t.type == TokenType.closeParen) {
+      } else if (t.type == TokenType.closeParen) {
         pDepth--;
         if (pDepth == 0) {
           urlEndIndex = i;
@@ -503,12 +503,12 @@ class _DelimiterNode extends TextNode {
   _DelimiterNode({
     required this.tokenType,
     required this.count,
-    required int start,
-    required int end,
+    required super.start,
+    required super.end,
     required this.char,
     this.canOpen = true,
     this.canClose = true,
-  }) : super(text: char * count, start: start, end: end);
+  }) : super(text: char * count);
 
   @override
   String get type => 'text'; // Pretend to be text for visitors
@@ -522,11 +522,4 @@ class _DelimiterNode extends TextNode {
     // end is final in Node, so we can't update it here.
     // We must rely on immutable replacement during merging.
   }
-}
-
-class _DelimiterStackEntry {
-  final int nodeIndex;
-  final _DelimiterNode node;
-
-  _DelimiterStackEntry({required this.nodeIndex, required this.node});
 }

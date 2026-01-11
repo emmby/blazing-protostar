@@ -63,20 +63,21 @@ class InlineLexer {
 
       // 2. Delimiters
       TokenType? type;
-      if (char == '*')
+      if (char == '*') {
         type = TokenType.star;
-      else if (char == '_')
+      } else if (char == '_') {
         type = TokenType.underscore;
-      else if (char == '[')
+      } else if (char == '[') {
         type = TokenType.openBracket;
-      else if (char == ']')
+      } else if (char == ']') {
         type = TokenType.closeBracket;
-      else if (char == '(')
+      } else if (char == '(') {
         type = TokenType.openParen;
-      else if (char == ')')
+      } else if (char == ')') {
         type = TokenType.closeParen;
-      else if (char == '`')
+      } else if (char == '`') {
         type = TokenType.backtick;
+      }
 
       if (type != null) {
         // Emit delimiter token
