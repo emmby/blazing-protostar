@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:blazing_protostar/src/features/editor/presentation/markdown_text_editing_controller.dart';
-import 'package:blazing_protostar/src/features/editor/presentation/markdown_toolbar.dart';
+import 'package:blazing_protostar/src/features/editor/presentation/markdown_editor.dart';
 
 class MarkdownEditorScreen extends StatefulWidget {
   const MarkdownEditorScreen({super.key});
@@ -31,12 +31,6 @@ class _MarkdownEditorScreenState extends State<MarkdownEditorScreen> {
     super.dispose();
   }
 
-  void _toggleWysiwygMode() {
-    setState(() {
-      _controller.isWysiwygMode = !_controller.isWysiwygMode;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -58,29 +52,7 @@ class _MarkdownEditorScreenState extends State<MarkdownEditorScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          MarkdownToolbar(
-            controller: _controller,
-            isWysiwygMode: _controller.isWysiwygMode,
-            onWysiwygToggle: _toggleWysiwygMode,
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: TextField(
-                controller: _controller,
-                maxLines: null,
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  hintText: 'Start writing...',
-                ),
-                autofocus: true,
-              ),
-            ),
-          ),
-        ],
-      ),
+      body: MarkdownEditor(controller: _controller),
     );
   }
 }

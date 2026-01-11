@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:blazing_protostar/blazing_protostar.dart';
 import 'package:blazing_protostar_yjs/blazing_protostar_yjs.dart';
-import 'dual_editor_test.dart';
 
 void main() {
   runApp(const MyApp());
@@ -18,11 +17,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
       ),
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const EditorHome(),
-        '/dual_editor_test': (context) => const DualEditorTest(),
-      },
+      home: const EditorHome(),
       debugShowCheckedModeBanner: false,
     );
   }
@@ -36,7 +31,7 @@ class EditorHome extends StatefulWidget {
 }
 
 class _EditorHomeState extends State<EditorHome> {
-  MarkdownTextEditingController? _controller;
+  late final MarkdownTextEditingController _controller;
   YjsDocumentBackend? _yjsBackend;
 
   @override
@@ -46,25 +41,28 @@ class _EditorHomeState extends State<EditorHome> {
   }
 
   void _initController() {
-    DocumentBackend backend;
-    try {
-      // Use the clean factory method instead of dealing with JS objects.
-      backend = YjsBackend.create();
-      _yjsBackend = backend as YjsDocumentBackend;
-    } catch (e) {
-      backend = InMemoryBackend(
-        initialText:
-            'Yjs Backend initialization failed: $e\n\n'
-            'Are you running on Web and have included yjs_bridge.js in your index.html?',
-      );
-    }
-    _controller = MarkdownTextEditingController(backend: backend);
-  }
+    // 1. Create a YDoc (from blaze_protostar_yjs export)
+    // In a real app, you might want to create this in a provider/service.
+    final doc = YDoc();
 
-  void _toggleWysiwygMode() {
-    setState(() {
-      _controller!.isWysiwygMode = !_controller!.isWysiwygMode;
-    });
+    // 2. Wire up a Provider (Example)
+    // ---------------------------------------------------------
+    // Since this is client-side only for the demo, we don't have a real
+    // WebSocket provider. In a real app, you would do something like:
+    //
+    // import 'package:y_websocket/y_websocket.dart';
+    // final provider = WebsocketProvider('ws://localhost:1234', 'room-name', doc);
+    //
+    // Or if using raw JS interop for y-websocket:
+    // final wsProvider = WebsocketProvider('ws://...', 'room', doc);
+    // ---------------------------------------------------------
+
+    // 3. Create the Backend formatted for Blazing Protostar
+    // This connects the specific YDoc field to our editor.
+    _yjsBackend = YjsDocumentBackend(doc, fieldName: 'markdown-content');
+
+    // 4. Initialize Controller with the backend
+    _controller = MarkdownTextEditingController(backend: _yjsBackend!);
   }
 
   @override
@@ -72,72 +70,24 @@ class _EditorHomeState extends State<EditorHome> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Yjs + Blazing Protostar'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.bug_report),
-            tooltip: 'Run Tests',
-            onPressed: () => Navigator.pushNamed(context, '/dual_editor_test'),
-          ),
+        actions: const [
           // Undo button
           IconButton(
-            icon: const Icon(Icons.undo),
+            icon: Icon(Icons.undo),
             tooltip: 'Undo',
-            onPressed: _yjsBackend != null
-                ? () {
-                    _yjsBackend!.undo();
-                    setState(() {});
-                  }
-                : null,
+            // Note: In a real app, link this to Y.UndoManager
+            onPressed: null,
           ),
           // Redo button
           IconButton(
-            icon: const Icon(Icons.redo),
+            icon: Icon(Icons.redo),
             tooltip: 'Redo',
-            onPressed: _yjsBackend != null
-                ? () {
-                    _yjsBackend!.redo();
-                    setState(() {});
-                  }
-                : null,
+            // Note: In a real app, link this to Y.UndoManager
+            onPressed: null,
           ),
         ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            MarkdownToolbar(
-              controller: _controller!,
-              isWysiwygMode: _controller!.isWysiwygMode,
-              onWysiwygToggle: _toggleWysiwygMode,
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: TextField(
-                  controller: _controller,
-                  maxLines: null,
-                  decoration: const InputDecoration(
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.all(20),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+      body: MarkdownEditor(controller: _controller),
     );
   }
 }

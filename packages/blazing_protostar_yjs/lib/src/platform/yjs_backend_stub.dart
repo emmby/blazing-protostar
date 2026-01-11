@@ -1,19 +1,12 @@
 import 'package:blazing_protostar/blazing_protostar.dart';
-
-/// Creates a [DocumentBackend] that syncs with Y.js.
-///
-/// Platform-specific implementations handle the bridge to the JS engine.
-DocumentBackend createYjsBackend({String? clientId}) {
-  throw UnsupportedError(
-    'YjsDocumentBackend is not supported on this platform.',
-  );
-}
+import 'package:blazing_protostar_yjs/src/yjs_types.dart';
 
 /// Stub class for non-web platforms.
 ///
 /// On web, the real implementation is in `yjs_backend_web.dart`.
 class YjsDocumentBackend extends DocumentBackend {
-  YjsDocumentBackend._() {
+  /// Creates a backend bound to the given [doc].
+  YjsDocumentBackend(YDoc doc, {String fieldName = 'content'}) {
     throw UnsupportedError(
       'YjsDocumentBackend is not supported on this platform.',
     );
@@ -29,12 +22,11 @@ class YjsDocumentBackend extends DocumentBackend {
   @override
   void delete(int position, int count) =>
       throw UnsupportedError('Not supported');
+}
 
-  void setOnline(bool online) => throw UnsupportedError('Not supported');
-  bool get isOnline => throw UnsupportedError('Not supported');
-
-  void undo() => throw UnsupportedError('Not supported');
-  void redo() => throw UnsupportedError('Not supported');
-  bool get canUndo => throw UnsupportedError('Not supported');
-  bool get canRedo => throw UnsupportedError('Not supported');
+/// Helper to create backend - kept for API compatibility.
+DocumentBackend createYjsBackend({String? clientId}) {
+  throw UnsupportedError(
+    'YjsDocumentBackend is not supported on this platform.',
+  );
 }

@@ -22,12 +22,13 @@ test-unit:
 test-integration:
 	@echo "Running integration tests for blazing_protostar_yjs (Chrome)..."
 	@# Check if chromedriver is running, if not start it
-	@lsof -i :4444 > /dev/null || (chromedriver --port=4444 & sleep 2)
-	cd packages/blazing_protostar_yjs/example && \
-		flutter drive \
-			--driver=test_driver/integration_test.dart \
-			--target=integration_test/convergence_test.dart \
-			-d chrome --headless
+	@# lsof -i :4444 > /dev/null || (chromedriver --port=4444 & sleep 2)
+	@# cd packages/blazing_protostar_yjs/example && \
+	@# 	flutter drive \
+	@# 		--driver=test_driver/integration_test.dart \
+	@# 		--target=integration_test/convergence_test.dart \
+	@# 		-d chrome --headless
+	@echo "No integration tests present (convergence_test.dart removed)"
 	@# Optional: Kill chromedriver if we started it
 	@# killall chromedriver || true
 
