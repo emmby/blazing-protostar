@@ -108,13 +108,14 @@
 -   [x] **Zero-Width Implementation**: Control characters rendered with `fontSize: 0` etc. to preserve offsets.
 -   [x] **List Handling**: Markers replaced with bullets of equal length.
 -   [x] **Web Compatibility**: Verified no visual artifacts (extra spacing) on Web.
+-   [x] **Spec Compliance**: Verified ATX Headers pass CommonMark tests (leading indentation, etc.).
 
 ### Phase 3b: Reveal-on-Proximity
--   [ ] Cursor inside styled region → markers visible.
+-   [x] Cursor inside styled region → markers visible.
 -   [ ] Cursor within 1-2 chars outside marker → markers visible.
--   [ ] Paired markers revealed together.
--   [ ] Block elements reveal markers for entire block.
--   [ ] Nested styles reveal independently per nesting level.
+-   [x] Paired markers revealed together.
+-   [x] Block elements reveal markers for entire block.
+-   [x] Nested styles reveal independently per nesting level.
 -   [ ] **Unit Test**: `MarkerVisibilityCalculator` returns correct nodes for various cursor positions.
 
 ### Phase 3c: Animation
