@@ -390,7 +390,29 @@ class MarkdownTextEditingController extends TextEditingController {
 
       if (node is HeaderNode) {
         // Headers scale based on level
-        final size = 24.0 - (node.level * 2.0); // Simple scaling
+        double size;
+        switch (node.level) {
+          case 1:
+            size = 32.0;
+            break;
+          case 2:
+            size = 26.0;
+            break;
+          case 3:
+            size = 22.0;
+            break;
+          case 4:
+            size = 19.0;
+            break;
+          case 5:
+            size = 16.0;
+            break;
+          case 6:
+          default:
+            size = 14.0;
+            break;
+        }
+
         newStyle = newStyle.copyWith(
           fontSize: size,
           fontWeight: FontWeight.bold,
