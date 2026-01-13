@@ -30,7 +30,7 @@ class MarkdownTextEditingController extends TextEditingController {
     MarkdownParser parser = const MarkdownParser(),
     DocumentBackend? backend,
     Duration throttleDuration = const Duration(milliseconds: 16),
-    this.isWysiwygMode = false,
+    this.isWysiwygMode = true,
   }) : _parser = parser,
        _backend = backend ?? InMemoryBackend(initialText: text ?? ''),
        super(text: text ?? backend?.text) {

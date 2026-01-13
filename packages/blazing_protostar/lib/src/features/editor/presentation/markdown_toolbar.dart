@@ -78,7 +78,7 @@ class MarkdownToolbar extends StatelessWidget {
                 const VerticalDivider(width: 16, indent: 12, endIndent: 12),
                 _ToolbarButton(
                   icon: Icons.code,
-                  isActive: isWysiwygMode,
+                  isActive: !isWysiwygMode,
                   onPressed: onWysiwygToggle!,
                   tooltip: isWysiwygMode ? 'Show Markdown' : 'Hide Markdown',
                 ),

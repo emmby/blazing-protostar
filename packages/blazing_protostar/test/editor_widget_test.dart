@@ -4,7 +4,10 @@ import 'package:blazing_protostar/src/features/editor/presentation/markdown_text
 
 void main() {
   testWidgets('MarkdownTextEditingController renders styling', (tester) async {
-    final controller = MarkdownTextEditingController(text: 'Hello **Bold**');
+    final controller = MarkdownTextEditingController(
+      text: 'Hello **Bold**',
+      isWysiwygMode: false,
+    );
 
     // Build context provider?
     // buildTextSpan needs a BuildContext, but does not use it in our implementation.
@@ -162,7 +165,7 @@ void main() {
   });
 
   testWidgets('Pasting multiline markdown renders all styles', (tester) async {
-    final controller = MarkdownTextEditingController();
+    final controller = MarkdownTextEditingController(isWysiwygMode: false);
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(body: TextField(controller: controller)),
