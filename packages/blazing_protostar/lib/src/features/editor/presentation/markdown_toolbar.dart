@@ -55,12 +55,7 @@ class MarkdownToolbar extends StatelessWidget {
                 tooltip: 'Italic',
               ),
               const VerticalDivider(width: 16, indent: 12, endIndent: 12),
-              _ToolbarButton(
-                icon: Icons.title,
-                isActive: activeStyles.contains('header'),
-                onPressed: () => controller.applyFormat('header'),
-                tooltip: 'Header',
-              ),
+              _HeadingDropdown(controller: controller),
               _ToolbarButton(
                 icon: Icons.format_list_bulleted,
                 isActive: activeStyles.contains('list'),
@@ -122,6 +117,54 @@ class _ToolbarButton extends StatelessWidget {
               : Colors.transparent,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
+      ),
+    );
+  }
+}
+
+/// Dropdown for selecting heading level (Normal, H1-H6).
+class _HeadingDropdown extends StatelessWidget {
+  final MarkdownTextEditingController controller;
+
+  const _HeadingDropdown({required this.controller});
+
+  static const List<String> _labels = [
+    'Normal',
+    'Heading 1',
+    'Heading 2',
+    'Heading 3',
+    'Heading 4',
+    'Heading 5',
+    'Heading 6',
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    // Get current heading level to show in dropdown
+    final currentLevel = controller.getCurrentHeadingLevel();
+
+    return Container(
+      height: 40,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: DropdownButton<int>(
+        value: currentLevel,
+        underline: const SizedBox.shrink(),
+        icon: const Icon(Icons.arrow_drop_down, size: 18),
+        style: const TextStyle(fontSize: 14, color: Colors.black87),
+        items: List.generate(
+          _labels.length,
+          (index) =>
+              DropdownMenuItem<int>(value: index, child: Text(_labels[index])),
+        ),
+        onChanged: (value) {
+          if (value != null) {
+            controller.applyHeadingLevel(value);
+          }
+        },
       ),
     );
   }

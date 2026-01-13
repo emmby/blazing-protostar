@@ -217,14 +217,21 @@ class MarkdownTextEditingController extends TextEditingController {
       }
     }
     // 2. Line Styles (Header, List)
-    else if (type == 'header' || type == 'list') {
-      final prefix = type == 'header' ? '# ' : '- ';
+    else if (type == 'header') {
+      // Find current heading level at cursor line
+      final lineStart = _getLineStart(selection.baseOffset);
+      final lineEnd = _getLineEnd(selection.baseOffset);
+      final lineText = text.substring(lineStart, lineEnd);
+      final headerMatch = RegExp(r'^(#{1,6})[ \t]+').firstMatch(lineText);
+      final currentLevel = headerMatch?.group(1)?.length ?? 0;
+
+      // Cycle: 0 -> 1 -> 2 -> 0
+      final newLevel = currentLevel >= 2 ? 0 : currentLevel + 1;
+      applyHeadingLevel(newLevel);
+    } else if (type == 'list') {
+      const prefix = '- ';
       // Find start of line
-      final start = text.lastIndexOf(
-        '\n',
-        selection.baseOffset - 1,
-      ); // -1 to handle being AT the newline
-      final lineStart = start == -1 ? 0 : start + 1;
+      final lineStart = _getLineStart(selection.baseOffset);
 
       // Insert prefix at line start
       final newText = text.replaceRange(lineStart, lineStart, prefix);
@@ -282,6 +289,65 @@ class MarkdownTextEditingController extends TextEditingController {
         );
       }
     }
+  }
+
+  /// Returns the start index of the line containing [offset].
+  int _getLineStart(int offset) {
+    if (offset <= 0) return 0;
+    final start = text.lastIndexOf('\n', offset - 1);
+    return start == -1 ? 0 : start + 1;
+  }
+
+  /// Returns the end index of the line containing [offset].
+  int _getLineEnd(int offset) {
+    final end = text.indexOf('\n', offset);
+    return end == -1 ? text.length : end;
+  }
+
+  /// Applies a heading level (1-6) to the current line.
+  /// If [level] is 0, removes any existing heading prefix (makes it "Normal").
+  void applyHeadingLevel(int level) {
+    if (selection.baseOffset < 0) return;
+
+    final lineStart = _getLineStart(selection.baseOffset);
+    final lineEnd = _getLineEnd(selection.baseOffset);
+    final lineText = text.substring(lineStart, lineEnd);
+
+    // Check for existing header prefix
+    final headerMatch = RegExp(r'^(#{1,6})[ \t]+').firstMatch(lineText);
+    final oldPrefixLength = headerMatch?.end ?? 0;
+
+    // Build new prefix
+    final newPrefix = level > 0 ? '${'#' * level} ' : '';
+
+    // Replace old prefix with new
+    final contentStart = lineStart + oldPrefixLength;
+    final newText = text.replaceRange(lineStart, contentStart, newPrefix);
+
+    // Adjust cursor
+    final cursorAdjustment = newPrefix.length - oldPrefixLength;
+    final newOffset = selection.baseOffset + cursorAdjustment;
+
+    value = value.copyWith(
+      text: newText,
+      selection: TextSelection.collapsed(
+        offset: newOffset.clamp(0, newText.length),
+      ),
+      composing: TextRange.empty,
+    );
+  }
+
+  /// Returns the current heading level (0-6) at the cursor position.
+  /// 0 means "Normal" (no heading).
+  int getCurrentHeadingLevel() {
+    if (selection.baseOffset < 0) return 0;
+
+    final lineStart = _getLineStart(selection.baseOffset);
+    final lineEnd = _getLineEnd(selection.baseOffset);
+    final lineText = text.substring(lineStart, lineEnd);
+
+    final headerMatch = RegExp(r'^(#{1,6})[ \t]+').firstMatch(lineText);
+    return headerMatch?.group(1)?.length ?? 0;
   }
 
   @override
