@@ -2,6 +2,7 @@
 library blazing_protostar_yjs;
 
 import 'package:blazing_protostar/blazing_protostar.dart';
+import 'src/yjs_types.dart';
 import 'src/platform/yjs_backend_stub.dart'
     if (dart.library.js_interop) 'src/platform/yjs_backend_web.dart';
 
@@ -19,6 +20,5 @@ abstract class YjsBackend {
   /// Creates a [DocumentBackend] instance that uses Y.js for storage.
   ///
   /// On Web, this requires `yjs_bridge.js` to be loaded in the page.
-  static DocumentBackend create({String? clientId}) =>
-      createYjsBackend(clientId: clientId);
+  static DocumentBackend create(YText yText) => createYjsBackend(yText);
 }

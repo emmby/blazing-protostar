@@ -58,8 +58,9 @@ class _EditorHomeState extends State<EditorHome> {
     // ---------------------------------------------------------
 
     // 3. Create the Backend formatted for Blazing Protostar
-    // This connects the specific YDoc field to our editor.
-    _yjsBackend = YjsDocumentBackend(doc, fieldName: 'markdown-content');
+    // This connects a specific YText to our editor.
+    final yText = doc.getText('markdown-content');
+    _yjsBackend = YjsDocumentBackend(yText);
 
     // 4. Initialize Controller with the backend
     _controller = MarkdownTextEditingController(backend: _yjsBackend!);

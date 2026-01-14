@@ -40,10 +40,10 @@ This document tracks the requirements and implementation phases for adding CRDT 
 ### [Question 5: Markdown-to-Y.js Mapping]
 - **Status**: Decided (Flat Mapping)
 - **Question**: How do we sync Markdown syntax (like `> ` or `- `) with CRDT block types?
-- **Proposal**: 
-    - The `YDoc` contains a single `Y.Text` field (defaulting to 'content').
-    - All markdown syntax is treated as raw characters within this text.
-- **Decision**: **Text-as-Canonical-Source**. The raw string content in Y.js `text` is the source of truth. The parser derives all structure from this linear text stream.
+- **Decision**: **Text-as-Canonical-Source**. 
+    - The RAW string content in a `Y.Text` object is the source of truth. 
+    - The `blazing_protostar_yjs` backend is now given a specific `Y.Text` instance directly. 
+    - This allows it to work with documents of any structure, whether the markdown is at the root or nested within a larger document.
 
 ### [Question 6: Undo/Redo Strategy]
 - **Status**: Decided

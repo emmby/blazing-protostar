@@ -29,8 +29,8 @@ Wrappers around standard Yjs objects provided via `dart:js_interop`.
 // Create a new YDoc (or wrap an existing JS handle)
 final doc = YDoc();
 
-// Access shared data types
-final yText = doc.getText('content');
+// Access shared data types from anywhere in the doc
+final yText = doc.getText('markdown-content');
 final yMap = doc.getMap('metadata');
 ```
 
@@ -39,7 +39,7 @@ The main class you will interact with. It binds the editor to a Yjs document.
 
 ```dart
 class YjsDocumentBackend extends DocumentBackend {
-  YjsDocumentBackend(YDoc doc, {String fieldName = 'content'});
+  YjsDocumentBackend(YText yText);
 }
 ```
 
@@ -64,8 +64,9 @@ void _setupEditor() {
   // Example: connect to y-websocket (assuming it's loaded in index.html)
   // connectToWebsocket(yDoc, 'wss://demos.yjs.dev', 'my-roomname');
 
-  // 3. Create the Backend with the connected Doc
-  final backend = YjsDocumentBackend(yDoc, fieldName: 'markdown-content');
+  // 3. Create the Backend with the specific YText
+  final yText = yDoc.getText('markdown-content');
+  final backend = YjsDocumentBackend(yText);
 
   // 4. Initialize Controller with this backend
   _controller = MarkdownTextEditingController(backend: backend);
