@@ -294,12 +294,16 @@ class MarkdownTextEditingController extends TextEditingController {
   /// Returns the start index of the line containing [offset].
   int _getLineStart(int offset) {
     if (offset <= 0) return 0;
+    if (offset > text.length) return text.length;
     final start = text.lastIndexOf('\n', offset - 1);
     return start == -1 ? 0 : start + 1;
   }
 
   /// Returns the end index of the line containing [offset].
   int _getLineEnd(int offset) {
+    if (offset >= text.length) {
+      return text.length;
+    }
     final end = text.indexOf('\n', offset);
     return end == -1 ? text.length : end;
   }
