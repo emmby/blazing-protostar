@@ -12,27 +12,33 @@ A high-performance, aesthetically pleasing Markdown Editor for Flutter. Built wi
     -   Control characters (e.g., `**`, `#`) are visible but styled in a low-contrast color.
     -   **Live Styling**: Text is styled in real-time (e.g., bold text appears bold).
 
-2.  **Markdown Toolbar** ✅
+2.  **Generic Directives Support** ✅
+    -   Full support for `:name[content](args){attributes}` syntax.
+    -   **Custom Rendering**: Developers can map directives to arbitrary Flutter widgets.
+    -   **Default Fallback**: Unhandled directives render as raw text (opt-in behavior).
+    -   *Details*: See [Directives Usage](docs/directives.md).
+
+3.  **Markdown Toolbar** ✅
     -   Standard CommonMark operations (Bold, Italic, Header, List, Link).
     -   Actions insert appropriate control characters into the text stream.
     -   **Reactive Highlighting**: Buttons highlight based on cursor position.
     -   **Configurable Positioning**: Can be placed as a header (Top) or footer (Bottom).
 
-3.  **Collaborative Editing (Optional)** ✅
+4.  **Collaborative Editing (Optional)** ✅
     -   Real-time collaboration via **Y.js** CRDT.
     -   **Block-Aware Sync**: Robust conflict resolution for concurrent edits.
     -   **Cross-Tab Sync**: Edits sync across browser tabs via `BroadcastChannel`.
     -   *Details*: See [crdt.md](docs/crdt.md) for technical requirements.
 
-4.  **WYSIWYG Toggle** 🚧
+5.  **WYSIWYG Toggle** 🚧
     -   A toggleable mode that hides control characters while preserving styling.
     -   Allows users to see the rendered output without distraction ("Zen Mode").
 
-5.  **Read-Only Mode** 🚧
+6.  **Read-Only Mode** 🚧
     -   Disables editing capabilities.
     -   Useful for previews or displaying static content.
 
-6.  **Full Theme Customization** 🚧
+7.  **Full Theme Customization** 🚧
     -   Control all visual aspects (colors, text styles, syntax opacity) via a theme object.
     -   *Rationale*: Ensures the editor can adapt to any design system.
 
@@ -118,6 +124,7 @@ Detailed specifications are in the `docs/` directory:
 -   [WYSIWYG Spec](docs/v003_wysiwyg.md) - v3 requirements.
 -   [Lexer Architecture](docs/lexer.md) - Parser design.
 -   [CRDT & Collaboration](docs/crdt.md) - Yjs integration details.
+-   [Directives Usage](docs/directives.md) - Custom widget guide.
 
 ## 🧪 Testing
 
