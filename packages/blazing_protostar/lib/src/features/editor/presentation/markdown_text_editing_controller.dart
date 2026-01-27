@@ -4,10 +4,12 @@ import 'package:blazing_protostar/src/features/editor/domain/models/node.dart';
 import 'package:blazing_protostar/src/features/editor/domain/models/block_state.dart';
 import 'package:blazing_protostar/src/features/editor/domain/backends/document_backend.dart';
 import 'package:blazing_protostar/src/features/editor/domain/backends/in_memory_backend.dart';
+import 'directive_builder.dart';
 
 class MarkdownTextEditingController extends TextEditingController {
   final MarkdownParser _parser;
   final DocumentBackend _backend;
+  final Map<String, DirectiveBuilder> directiveBuilders;
 
   /// Flag to prevent re-entrancy when applying remote updates.
   bool _isApplyingRemoteUpdate = false;
@@ -31,6 +33,7 @@ class MarkdownTextEditingController extends TextEditingController {
     DocumentBackend? backend,
     Duration throttleDuration = const Duration(milliseconds: 16),
     this.isWysiwygMode = true,
+    this.directiveBuilders = const {},
   }) : _parser = parser,
        _backend = backend ?? InMemoryBackend(initialText: text ?? ''),
        super(text: text ?? backend?.text) {
@@ -366,7 +369,7 @@ class MarkdownTextEditingController extends TextEditingController {
 
     // 2. Convert AST to TextSpans with Styling
     // We pass the "default" style (likely from TextField) as the base.
-    return _renderNode(document, style ?? const TextStyle(), null);
+    return _renderNode(context, document, style ?? const TextStyle(), null);
   }
 
   /// Checks if the node should be revealed based on cursor proximity.
@@ -381,7 +384,12 @@ class MarkdownTextEditingController extends TextEditingController {
     return cursor >= node.start && cursor <= node.end;
   }
 
-  TextSpan _renderNode(Node node, TextStyle currentStyle, Node? parent) {
+  TextSpan _renderNode(
+    BuildContext context,
+    Node node,
+    TextStyle currentStyle,
+    Node? parent,
+  ) {
     // Handle TextNode - special case for list items and headers
     if (node is TextNode) {
       // Determine if visual replacement should happen
@@ -499,6 +507,15 @@ class MarkdownTextEditingController extends TextEditingController {
         );
       } else if (node is EscapeNode) {
         newStyle = newStyle.copyWith(color: Colors.grey);
+      } else if (node is InlineDirectiveNode) {
+        // Check if we have a builder for this key
+        final builder = directiveBuilders[node.name];
+        if (builder != null) {
+          childrenSpans.add(builder(context, node));
+          return TextSpan(children: childrenSpans);
+        }
+        // Fallback: Render children normally (or some placeholder)
+        // We'll treat it like a generic span for now
       }
 
       // Determine if we should reveal this node's control characters
@@ -534,7 +551,7 @@ class MarkdownTextEditingController extends TextEditingController {
           }
         }
 
-        childrenSpans.add(_renderNode(child, newStyle, node));
+        childrenSpans.add(_renderNode(context, child, newStyle, node));
         currentPos = child.end;
       }
 
