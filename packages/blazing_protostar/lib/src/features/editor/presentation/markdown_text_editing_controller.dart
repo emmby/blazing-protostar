@@ -514,8 +514,15 @@ class MarkdownTextEditingController extends TextEditingController {
           childrenSpans.add(builder(context, node));
           return TextSpan(children: childrenSpans);
         }
-        // Fallback: Render children normally (or some placeholder)
-        // We'll treat it like a generic span for now
+        // Fallback: Render exactly as written (raw text)
+        // This ensures opt-in behavior for custom rendering.
+        childrenSpans.add(
+          TextSpan(
+            text: text.substring(node.start, node.end),
+            style: currentStyle,
+          ),
+        );
+        return TextSpan(children: childrenSpans);
       }
 
       // Determine if we should reveal this node's control characters

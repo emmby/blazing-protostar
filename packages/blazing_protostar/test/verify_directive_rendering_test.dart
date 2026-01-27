@@ -55,8 +55,8 @@ void main() {
     );
 
     // In default WYSIWYG mode, markers are hidden, content is shown.
-    // We expect "Default " and "Render".
-    expect(find.textContaining('Default '), findsOneWidget);
-    expect(find.textContaining('Render'), findsOneWidget);
+    // However, default fallback for directives is now "render as written".
+    // So we expect the full raw text: ":fallback[Render]"
+    expect(find.textContaining('Default :fallback[Render]'), findsOneWidget);
   });
 }
