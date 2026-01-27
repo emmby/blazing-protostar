@@ -1,0 +1,42 @@
+[
+  {
+    "markdown": ":child[text]",
+    "html": "<p><directive name=\"child\">text</directive></p>",
+    "section": "Generic Directives - Text"
+  },
+  {
+    "markdown": ":child[**bold**]",
+    "html": "<p><directive name=\"child\"><strong>bold</strong></directive></p>",
+    "section": "Generic Directives - Nested"
+  },
+  {
+    "markdown": ":video[caption](http://video.com)",
+    "html": "<p><directive name=\"video\" args=\"http://video.com\">caption</directive></p>",
+    "section": "Generic Directives - Args"
+  },
+  {
+    "markdown": ":button[Click]{color=red}",
+    "html": "<p><directive name=\"button\" attributes=\"color=red\">Click</directive></p>",
+    "section": "Generic Directives - Attributes"
+  },
+  {
+    "markdown": ":a[b](c){d=e}",
+    "html": "<p><directive name=\"a\" args=\"c\" attributes=\"d=e\">b</directive></p>",
+    "section": "Generic Directives - Full"
+  },
+  {
+    "markdown": "\\:escaped[text]",
+    "html": "<p>:escaped[text]</p>",
+    "section": "Generic Directives - Escaped"
+  },
+  {
+    "markdown": "not:directive[text]",
+    "html": "<p>not:directive[text]</p>",
+    "section": "Generic Directives - Negative"
+  },
+  {
+    "markdown": "::block[text]",
+    "html": "<p>::block[text]</p>",
+    "section": "Generic Directives - Block Scope (Ignored)"
+  }
+]

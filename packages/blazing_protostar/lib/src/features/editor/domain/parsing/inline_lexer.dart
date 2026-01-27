@@ -7,6 +7,7 @@ enum TokenType {
   openParen, // (
   closeParen, // )
   backtick, // ` (code)
+  colon, // : (directive)
   escape, // \
 }
 
@@ -77,6 +78,8 @@ class InlineLexer {
         type = TokenType.closeParen;
       } else if (char == '`') {
         type = TokenType.backtick;
+      } else if (char == ':') {
+        type = TokenType.colon;
       }
 
       if (type != null) {
@@ -105,7 +108,8 @@ class InlineLexer {
             nextChar == ']' ||
             nextChar == '(' ||
             nextChar == ')' ||
-            nextChar == '`') {
+            nextChar == '`' ||
+            nextChar == ':') {
           break;
         }
         textEnd++;

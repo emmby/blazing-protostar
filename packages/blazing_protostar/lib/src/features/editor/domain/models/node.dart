@@ -1,5 +1,6 @@
 export 'block_nodes.dart';
 export 'inline_nodes.dart';
+export 'directive_node.dart';
 
 /// Base class for all AST nodes in the Markdown document.
 ///

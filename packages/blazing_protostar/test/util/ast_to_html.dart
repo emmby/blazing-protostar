@@ -59,6 +59,22 @@ class AstToHtmlRenderer implements NodeVisitor<String> {
       return '<a href="${node.href}">$content</a>';
     } else if (node is EscapeNode) {
       return content; // Render the escaped char without the backslash
+    } else if (node is InlineDirectiveNode) {
+      final buffer = StringBuffer();
+      buffer.write('<directive name="${node.name}"');
+      if (node.args != null) buffer.write(' args="${node.args}"');
+      if (node.attributes != null) {
+        // Simple serialization for test comparison
+        // Note: attributes map order is not guaranteed, so tests should use single attr or be careful
+        final attrs = node.attributes!.entries
+            .map((e) => '${e.key}=${e.value}')
+            .join(' ');
+        buffer.write(' attributes="$attrs"');
+      }
+      buffer.write('>');
+      buffer.write(content); // Children
+      buffer.write('</directive>');
+      return buffer.toString();
     }
 
     return content;

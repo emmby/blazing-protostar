@@ -144,6 +144,31 @@ class InlineParser {
           }
         }
         nodes.add(node);
+      } else if (t.type == TokenType.colon) {
+        final match = _tryParseDirective(tokens, i);
+        if (match != null) {
+          final innerTokens = tokens.sublist(
+            match.contentStartIndex,
+            match.contentEndIndex,
+          );
+          final innerChildren = _parseTokens(innerTokens);
+
+          nodes.add(
+            InlineDirectiveNode(
+              name: match.name,
+              children: innerChildren,
+              start: t.start,
+              end: match.endOffset,
+              args: match.args,
+              attributes: match.attributes,
+            ),
+          );
+
+          i = match.nextIndex - 1;
+          continue;
+        }
+
+        nodes.add(TextNode(text: t.content, start: t.start, end: t.end));
       } else if (t.type == TokenType.openBracket) {
         final linkInfo = _findLinkMatch(tokens, i);
         if (linkInfo != null) {
@@ -522,4 +547,174 @@ class _DelimiterNode extends TextNode {
     // end is final in Node, so we can't update it here.
     // We must rely on immutable replacement during merging.
   }
+}
+
+extension InlineParserHelpers on InlineParser {
+  _DirectiveMatch? _tryParseDirective(List<Token> tokens, int colonIndex) {
+    // 0. Boundary Check (Preceding Token)
+    // To avoid false positives like "http://url" or "::block", we require
+    // the colon to be preceded by whitespace, punctuation, or start of line.
+    if (colonIndex > 0) {
+      final prev = tokens[colonIndex - 1];
+      if (prev.type == TokenType.colon) {
+        // Double colon "::" -> Ignore (likely Block Directive or unrelated)
+        return null;
+      }
+      if (prev.type == TokenType.text) {
+        // If text, it must end with whitespace to be a valid boundary
+        final text = prev.content;
+        if (text.isNotEmpty) {
+          final lastChar = text[text.length - 1];
+          final isWhitespace =
+              (lastChar == ' ' || lastChar == '\t' || lastChar == '\n');
+          if (!isWhitespace) return null;
+        }
+      }
+      // Allowed previous tokens:
+      // - whitespace (handled above)
+      // - brackets/parens/starts/underscores (punctuation boundaries) -> OK.
+    }
+
+    // 1. Parse Name
+    // Name can be composed of Text and Underscore tokens
+    // It must start immediately after colon
+    int currentIndex = colonIndex + 1;
+    if (currentIndex >= tokens.length) return null;
+
+    final nameBuffer = StringBuffer();
+    while (currentIndex < tokens.length) {
+      final t = tokens[currentIndex];
+      if (t.type == TokenType.text) {
+        // Validation: Text must be alphanumeric/hyphen
+        if (!RegExp(r'^[a-zA-Z0-9\-]+$').hasMatch(t.content)) {
+          break;
+        }
+        nameBuffer.write(t.content);
+        currentIndex++;
+      } else if (t.type == TokenType.underscore) {
+        nameBuffer.write('_');
+        currentIndex++;
+      } else {
+        break; // Stop at any other token (e.g. [ or space)
+      }
+    }
+
+    final name = nameBuffer.toString();
+    if (name.isEmpty) return null;
+
+    // 2. Expect '[' immediately
+    if (currentIndex >= tokens.length) return null;
+    if (tokens[currentIndex].type != TokenType.openBracket) return null;
+
+    final int contentStartIndex = currentIndex + 1;
+    int depth = 1;
+    int contentEndIndex = -1;
+
+    // Scan for balanced closing bracket
+    int i = contentStartIndex;
+    while (i < tokens.length) {
+      if (tokens[i].type == TokenType.openBracket) {
+        depth++;
+      } else if (tokens[i].type == TokenType.closeBracket) {
+        depth--;
+        if (depth == 0) {
+          contentEndIndex = i;
+          break;
+        }
+      }
+      i++;
+    }
+
+    if (contentEndIndex == -1) return null;
+
+    // 3. Optional Args (parens)
+    String? args;
+    int nextScanIndex = contentEndIndex + 1;
+    if (nextScanIndex < tokens.length &&
+        tokens[nextScanIndex].type == TokenType.openParen) {
+      final argStart = nextScanIndex + 1;
+      int pDepth = 1;
+      int argEnd = -1;
+      final argBuffer = StringBuffer();
+
+      int j = argStart;
+      while (j < tokens.length) {
+        if (tokens[j].type == TokenType.openParen) {
+          pDepth++;
+        } else if (tokens[j].type == TokenType.closeParen) {
+          pDepth--;
+          if (pDepth == 0) {
+            argEnd = j;
+            break;
+          }
+        }
+        if (pDepth > 0) argBuffer.write(tokens[j].content);
+        j++;
+      }
+      if (argEnd != -1) {
+        args = argBuffer.toString();
+        nextScanIndex = argEnd + 1;
+      }
+    }
+
+    // 4. Optional Attributes (braces)
+    Map<String, String>? attributes;
+    if (nextScanIndex < tokens.length &&
+        tokens[nextScanIndex].type == TokenType.text &&
+        tokens[nextScanIndex].content.startsWith('{')) {
+      final t = tokens[nextScanIndex];
+      final content = t.content;
+      final closeBraceIdx = content.indexOf('}');
+      if (closeBraceIdx != -1) {
+        final rawAttrs = content.substring(1, closeBraceIdx);
+        attributes = _parseAttributes(rawAttrs);
+        nextScanIndex++;
+      }
+    }
+
+    return _DirectiveMatch(
+      name: name,
+      contentStartIndex: contentStartIndex,
+      contentEndIndex: contentEndIndex,
+      nextIndex: nextScanIndex,
+      endOffset: tokens[nextScanIndex - 1].end,
+      args: args,
+      attributes: attributes,
+    );
+  }
+
+  Map<String, String> _parseAttributes(String raw) {
+    final map = <String, String>{};
+    final pairs = raw.split(RegExp(r'\s+'));
+    for (final pair in pairs) {
+      if (pair.isEmpty) continue;
+      final parts = pair.split('=');
+      if (parts.length == 2) {
+        map[parts[0]] = parts[1];
+      } else {
+        map[pair] = '';
+      }
+    }
+    return map;
+  }
+}
+
+class _DirectiveMatch {
+  final String name;
+  final int contentStartIndex;
+  final int contentEndIndex;
+  final int nextIndex;
+  final int endOffset;
+  final String? args;
+  final Map<String, String>? attributes;
+
+  _DirectiveMatch({
+    required this.name,
+    required this.contentStartIndex,
+    required this.contentEndIndex,
+    required this.nextIndex,
+    required this.endOffset,
+    this.args,
+    this.attributes,
+  });
 }
