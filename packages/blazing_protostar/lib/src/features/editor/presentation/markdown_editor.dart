@@ -2,6 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:blazing_protostar/src/features/editor/presentation/markdown_text_editing_controller.dart';
 import 'package:blazing_protostar/src/features/editor/presentation/markdown_toolbar.dart';
 
+/// Builder for a custom toolbar.
+typedef ToolbarBuilder =
+    Widget Function(
+      BuildContext context,
+      MarkdownTextEditingController controller,
+      bool isWysiwygMode,
+      VoidCallback onWysiwygToggle,
+    );
+
 /// A robust Markdown editor widget that supports WYSIWYG editing,
 /// toolbar customization, and seamless Yjs integration.
 class MarkdownEditor extends StatefulWidget {
@@ -11,10 +20,12 @@ class MarkdownEditor extends StatefulWidget {
   /// Whether to show the formatting toolbar at the top.
   final bool toolbarVisible;
 
+  /// Optional builder for a custom toolbar.
+  final ToolbarBuilder? toolbarBuilder;
+
   /// Whether the editor is read-only.
   final bool readOnly;
 
-  /// Optional focus node.
   /// Optional focus node.
   final FocusNode? focusNode;
 
@@ -40,6 +51,7 @@ class MarkdownEditor extends StatefulWidget {
     super.key,
     required this.controller,
     this.toolbarVisible = true,
+    this.toolbarBuilder,
     this.readOnly = false,
     this.focusNode,
     this.expands = true,
@@ -133,11 +145,17 @@ class _MarkdownEditorState extends State<MarkdownEditor> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (widget.toolbarVisible)
-          MarkdownToolbar(
-            controller: widget.controller,
-            isWysiwygMode: widget.controller.isWysiwygMode,
-            onWysiwygToggle: _toggleWysiwygMode,
-          ),
+          widget.toolbarBuilder?.call(
+                context,
+                widget.controller,
+                widget.controller.isWysiwygMode,
+                _toggleWysiwygMode,
+              ) ??
+              MarkdownToolbar(
+                controller: widget.controller,
+                isWysiwygMode: widget.controller.isWysiwygMode,
+                onWysiwygToggle: _toggleWysiwygMode,
+              ),
         editorField,
       ],
     );

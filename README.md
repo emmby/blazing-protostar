@@ -124,6 +124,7 @@ Detailed specifications are in the `docs/` directory:
 -   [WYSIWYG Spec](docs/v003_wysiwyg.md) - v3 requirements.
 -   [Lexer Architecture](docs/lexer.md) - Parser design.
 -   [CRDT & Collaboration](docs/crdt.md) - Yjs integration details.
+-   [Toolbar Customization](docs/toolbar.md) - How to customize the toolbar.
 -   [Directives Usage](docs/directives.md) - Custom widget guide.
 
 ## 🧪 Testing

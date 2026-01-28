@@ -32,4 +32,36 @@ void main() {
       expect(controller.text, '# Hello');
     },
   );
+
+  test(
+    'MarkdownTextEditingController.insertAtCursor inserts text at cursor',
+    () {
+      final controller = MarkdownTextEditingController(text: 'Hello World');
+
+      // Insert in the middle
+      controller.selection = const TextSelection.collapsed(offset: 6);
+      controller.insertAtCursor('Beautiful ');
+      expect(controller.text, 'Hello Beautiful World');
+      expect(controller.selection.baseOffset, 16); // After inserted text
+    },
+  );
+
+  test('MarkdownTextEditingController.insertAtCursor replaces selection', () {
+    final controller = MarkdownTextEditingController(text: 'Hello World');
+
+    // Select "World"
+    controller.selection = const TextSelection(baseOffset: 6, extentOffset: 11);
+    controller.insertAtCursor('Flutter');
+    expect(controller.text, 'Hello Flutter');
+    expect(controller.selection.baseOffset, 13); // After inserted text
+  });
+
+  test('MarkdownTextEditingController.insertAtCursor handles no selection', () {
+    final controller = MarkdownTextEditingController(text: 'Hello');
+
+    // Invalid selection
+    controller.selection = const TextSelection.collapsed(offset: -1);
+    controller.insertAtCursor('Test');
+    expect(controller.text, 'Hello'); // No change
+  });
 }

@@ -75,4 +75,40 @@ void main() {
     );
     expect(paddingWidget.padding, const EdgeInsets.all(8.0));
   });
+
+  testWidgets('MarkdownEditor uses custom toolbarBuilder', (tester) async {
+    final controller = MarkdownTextEditingController(text: 'Test');
+    bool customButtonPressed = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MarkdownEditor(
+            controller: controller,
+            toolbarBuilder: (context, ctrl, isWysiwyg, onToggle) {
+              return Container(
+                key: const Key('custom-toolbar'),
+                child: IconButton(
+                  key: const Key('custom-button'),
+                  icon: const Icon(Icons.star),
+                  onPressed: () => customButtonPressed = true,
+                ),
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    // Verify custom toolbar is rendered
+    expect(find.byKey(const Key('custom-toolbar')), findsOneWidget);
+    expect(find.byKey(const Key('custom-button')), findsOneWidget);
+
+    // Verify default toolbar is NOT rendered
+    expect(find.byType(MarkdownToolbar), findsNothing);
+
+    // Verify custom button works
+    await tester.tap(find.byKey(const Key('custom-button')));
+    expect(customButtonPressed, true);
+  });
 }

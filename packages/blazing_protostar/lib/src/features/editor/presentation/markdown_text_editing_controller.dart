@@ -294,7 +294,25 @@ class MarkdownTextEditingController extends TextEditingController {
     }
   }
 
-  /// Returns the start index of the line containing [offset].
+  /// Inserts [text] at the current cursor position or replaces the current selection.
+  void insertAtCursor(String text) {
+    if (selection.baseOffset < 0) return;
+
+    final newText = this.text.replaceRange(
+      selection.start,
+      selection.end,
+      text,
+    );
+
+    final newOffset = selection.start + text.length;
+
+    value = value.copyWith(
+      text: newText,
+      selection: TextSelection.collapsed(offset: newOffset),
+      composing: TextRange.empty,
+    );
+  }
+
   int _getLineStart(int offset) {
     if (offset <= 0) return 0;
     if (offset > text.length) return text.length;
