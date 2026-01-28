@@ -66,9 +66,8 @@ controller.addListener(() {
 Blazing Protostar does **not** automatically clear ghost text when the user types or moves the cursor. You must call `clearGhostText()` in your listener logic when:
 - The user moves the cursor away from the trigger position.
 - The user types a character that invalidates the suggestion.
-- The user accepts the suggestion (implementation dependent in Phase 2).
+- The user accepts the suggestion (handled by the consuming application).
 
-## Future Phases
+## Suggestion Acceptance
 
-- **Phase 2**: Key Event Handlers (intercept Tab/Enter to accept suggestions).
-- **Phase 3**: Text Manipulation Helpers (easier replacement of partial text).
+Handling key events (like `Tab` or `Enter`) and replacing the text with the suggestion is currently the responsibility of the consuming application. Blazing Protostar provides the building blocks (controller and ghost text), but the specific interaction model is left to the implementer.

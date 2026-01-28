@@ -305,49 +305,25 @@ This feature will be implemented in three discrete phases, allowing for incremen
 
 ---
 
-### Phase 2: Custom Key Event Handlers
+### Phase 2: Custom Key Event Handlers (DEFERRED)
 
-**Scope**: Allow consumers to intercept key events for autocomplete acceptance
+> [!NOTE]
+> This phase has been deferred as it is not currently required by consuming applications (e.g., Resonant Bohr).
 
-**Features**:
-- `onKeyEvent` callback parameter on `MarkdownEditor`
-- Key event interception before default handling
-- Support for preventing default behavior
+**Scope**: Allow consumers to intercept key events for autocomplete acceptance.
 
-**Acceptance Criteria**:
-- [ ] `MarkdownEditor` accepts `onKeyEvent` callback parameter
-- [ ] Callback receives key events before default handling
-- [ ] Returning `true` from callback prevents default behavior
-- [ ] Tab, Enter, Shift+Enter, and Escape keys work as specified
-- [ ] Unit tests: Key event handler invocation
-- [ ] Widget tests: Key events trigger callbacks, prevention works correctly
-- [ ] Integration tests: Key handlers with autocomplete workflow
-- [ ] Documentation: `docs/autocomplete.md` updated with key event handler documentation
-
-**Version**: Minor (e.g., 0.3.0 or 0.4.0)
+**Status**: Abandoned/Deferred.
 
 ---
 
-### Phase 3: Text Manipulation Helpers
+### Phase 3: Text Manipulation Helpers (DEFERRED)
 
-**Scope**: Enhanced text manipulation for accepting suggestions
+> [!NOTE]
+> This phase has been deferred as it is not currently required by consuming applications.
 
-**Features**:
-- `replaceRange()` method on `MarkdownTextEditingController`
-- Replace text in a given range with proper cursor positioning
+**Scope**: Add helpers to simplify text replacement.
 
-**Acceptance Criteria**:
-- [ ] `replaceRange()` method works correctly
-- [ ] Cursor positions correctly after replacement
-- [ ] Unit tests: Text replacement helpers
-- [ ] Widget tests: Text replacement with various range values
-- [ ] Documentation: `docs/autocomplete.md` updated with text manipulation helper documentation
-
-**Version**: Patch (e.g., 0.3.1 or 0.4.1)
-
-**Note**: This phase is optional if `insertAtCursor()` is sufficient for the autocomplete use case.
-
----
+**Status**: Abandoned/Deferred.
 
 ## Version Planning Summary
 
