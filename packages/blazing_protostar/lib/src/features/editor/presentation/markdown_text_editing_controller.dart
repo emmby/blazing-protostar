@@ -5,11 +5,13 @@ import 'package:blazing_protostar/src/features/editor/domain/models/block_state.
 import 'package:blazing_protostar/src/features/editor/domain/backends/document_backend.dart';
 import 'package:blazing_protostar/src/features/editor/domain/backends/in_memory_backend.dart';
 import 'directive_builder.dart';
+import 'node_renderer.dart';
 
 class MarkdownTextEditingController extends TextEditingController {
   final MarkdownParser _parser;
   final DocumentBackend _backend;
   final Map<String, DirectiveBuilder> directiveBuilders;
+  final Map<Type, NodeRenderer> nodeBuilders;
 
   /// Flag to prevent re-entrancy when applying remote updates.
   bool _isApplyingRemoteUpdate = false;
@@ -41,6 +43,7 @@ class MarkdownTextEditingController extends TextEditingController {
     Duration throttleDuration = const Duration(milliseconds: 16),
     this.isWysiwygMode = true,
     this.directiveBuilders = const {},
+    this.nodeBuilders = const {},
   }) : _parser = parser,
        _backend = backend ?? InMemoryBackend(initialText: text ?? ''),
        super(text: text ?? backend?.text) {
@@ -428,12 +431,19 @@ class MarkdownTextEditingController extends TextEditingController {
 
     // 2. Convert AST to TextSpans with Styling
     // We pass the "default" style (likely from TextField) as the base.
-    final baseSpan = _renderNode(
+    final baseInlineSpan = _renderNode(
       context,
       document,
       style ?? const TextStyle(),
       null,
     );
+
+    final TextSpan baseSpan;
+    if (baseInlineSpan is TextSpan) {
+      baseSpan = baseInlineSpan;
+    } else {
+      baseSpan = TextSpan(children: [baseInlineSpan]);
+    }
 
     // 3. If ghost text exists, inject it at cursor position
     if (_ghostText != null &&
@@ -587,7 +597,7 @@ class MarkdownTextEditingController extends TextEditingController {
     return cursor >= node.start && cursor <= node.end;
   }
 
-  TextSpan _renderNode(
+  InlineSpan _renderNode(
     BuildContext context,
     Node node,
     TextStyle currentStyle,
@@ -595,6 +605,17 @@ class MarkdownTextEditingController extends TextEditingController {
   ) {
     // Handle TextNode - special case for list items and headers
     if (node is TextNode) {
+      // Check if we have a custom renderer for TextNode (rare but possible)
+      final shouldRevealSelf = _shouldRevealNode(node);
+      if (nodeBuilders.containsKey(node.runtimeType)) {
+        return nodeBuilders[node.runtimeType]!(
+          context,
+          node,
+          currentStyle,
+          shouldRevealSelf,
+        );
+      }
+
       // Determine if visual replacement should happen
       // We perform replacement if WYSIWYG is ON AND the parent is NOT revealed
       bool shouldHideMarkers = isWysiwygMode;
@@ -666,6 +687,19 @@ class MarkdownTextEditingController extends TextEditingController {
     if (node is ElementNode) {
       final childrenSpans = <InlineSpan>[];
 
+      // Determine if we should reveal this node's control characters
+      final shouldRevealSelf = _shouldRevealNode(node);
+
+      // Check for custom renderer
+      if (nodeBuilders.containsKey(node.runtimeType)) {
+        return nodeBuilders[node.runtimeType]!(
+          context,
+          node,
+          currentStyle,
+          shouldRevealSelf,
+        );
+      }
+
       // Calculate new style based on Node Type
       var newStyle = currentStyle;
 
@@ -728,8 +762,7 @@ class MarkdownTextEditingController extends TextEditingController {
         return TextSpan(children: childrenSpans);
       }
 
-      // Determine if we should reveal this node's control characters
-      bool shouldRevealSelf = _shouldRevealNode(node);
+      // shouldRevealSelf is already calculated above
 
       int currentPos = node.start;
 
