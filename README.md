@@ -14,7 +14,7 @@ A high-performance, aesthetically pleasing Markdown Editor for Flutter. Built wi
 
 2.  **Generic Directives Support** ✅
     -   Full support for `:name[content](args){attributes}` syntax.
-    -   **Custom Rendering**: Developers can map directives to arbitrary Flutter widgets.
+    -   **Custom Rendering**: Developers can map directives (or any markdown element) to arbitrary Flutter widgets using function builders or **class-based renderers**.
     -   **Default Fallback**: Unhandled directives render as raw text (opt-in behavior).
     -   *Details*: See [Directives Usage](docs/directives.md).
 

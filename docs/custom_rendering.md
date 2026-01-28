@@ -23,8 +23,9 @@ typedef NodeRenderer = InlineSpan Function(
   BuildContext context,
   Node node,
   TextStyle style,
-  bool isRevealed,
-);
+  bool isRevealed, [
+  Node? parent,
+]);
 ```
 
 **Parameters:**
@@ -32,6 +33,7 @@ typedef NodeRenderer = InlineSpan Function(
 - `node`: The AST node being rendered (cast to specific type like `HeaderNode`)
 - `style`: Base text style that would have been applied by default renderer
 - `isRevealed`: `true` if cursor is near/inside this node (Edit Mode), `false` otherwise
+- `parent`: (Optional) The parent node in the AST, useful for context-aware rendering (e.g., list bullets)
 
 ### Usage
 
@@ -41,7 +43,7 @@ Pass the `nodeBuilders` map to `MarkdownTextEditingController`:
 final controller = MarkdownTextEditingController(
   text: '# Hello World',
   nodeBuilders: {
-    HeaderNode: (context, node, style, isRevealed) {
+    HeaderNode: (context, node, style, isRevealed, [parent]) {
       final header = node as HeaderNode;
       // Extract text from child TextNodes
       final text = header.children
@@ -67,7 +69,7 @@ final controller = MarkdownTextEditingController(
 
 ```dart
 nodeBuilders: {
-  HeaderNode: (context, node, style, isRevealed) {
+  HeaderNode: (context, node, style, isRevealed, [parent]) {
     final header = node as HeaderNode;
     final text = header.children
         .whereType<TextNode>()
@@ -94,7 +96,7 @@ nodeBuilders: {
 
 ```dart
 nodeBuilders: {
-  InlineDirectiveNode: (context, node, style, isRevealed) {
+  InlineDirectiveNode: (context, node, style, isRevealed, [parent]) {
     final directive = node as InlineDirectiveNode;
     
     // Edit Mode: Show raw syntax for editing
@@ -128,7 +130,7 @@ nodeBuilders: {
 
 ```dart
 nodeBuilders: {
-  LinkNode: (context, node, style, isRevealed) {
+  LinkNode: (context, node, style, isRevealed, [parent]) {
     final link = node as LinkNode;
     
     return WidgetSpan(
@@ -154,7 +156,7 @@ nodeBuilders: {
 
 ```dart
 nodeBuilders: {
-  BoldNode: (context, node, style, isRevealed) {
+  BoldNode: (context, node, style, isRevealed, [parent]) {
     final bold = node as BoldNode;
     final text = bold.children
         .whereType<TextNode>()
@@ -178,6 +180,57 @@ nodeBuilders: {
     );
   },
 }
+## Class-Based Renderers (Recommended)
+
+For complex rendering logic, it is recommended to extend `BaseNodeRenderer`. This class uses the **Template Method** pattern to cleanly separate WYSIWYG rendering from Raw (Edit) rendering.
+
+### Extending BaseNodeRenderer
+
+```dart
+class MyBoldRenderer extends BaseNodeRenderer {
+  @override
+  InlineSpan renderWysiwyg(
+    BuildContext context,
+    Node node,
+    TextStyle style,
+    RenderContext renderContext, {
+    Node? parent,
+  }) {
+    // Return span for when markers are HIDDEN
+    return _renderWithStyle(node as ElementNode, style, true);
+  }
+
+  @override
+  InlineSpan renderRaw(
+    BuildContext context,
+    Node node,
+    TextStyle style,
+    RenderContext renderContext, {
+    Node? parent,
+  }) {
+    // Return span for when markers are VISIBLE (Grey)
+    return _renderWithStyle(node as ElementNode, style, false);
+  }
+
+  InlineSpan _renderWithStyle(ElementNode node, TextStyle style, bool isWysiwyg) {
+    // Common rendering logic...
+  }
+}
+```
+
+### Benefits of Class-Based Renderers
+
+1.  **Automatic Mode Dispatch**: The base class handles the logic of when to call `renderWysiwyg` vs `renderRaw` based on cursor position.
+2.  **Standardized Markers**: Use the `renderControlChars(text, style, isWysiwyg)` helper to ensure markdown markers (like `**`) look consistent across your app.
+3.  **Recursive Rendering**: The `RenderContext` provides a `renderChild` method to easily render children nodes while preserving the correct styles.
+
+To use a class-based renderer, register it in `nodeBuilders`:
+
+```dart
+final myRenderer = MyBoldRenderer();
+nodeBuilders: {
+  BoldNode: myRenderer.render,
+}
 ```
 
 ## Edit Mode vs View Mode
@@ -186,7 +239,7 @@ The `isRevealed` parameter enables different rendering based on cursor position.
 
 
 ```dart
-HeaderNode: (context, node, style, isRevealed) {
+HeaderNode: (context, node, style, isRevealed, [parent]) {
   final header = node as HeaderNode;
   final text = header.children
       .whereType<TextNode>()
@@ -271,7 +324,7 @@ Use :tag[custom] directives
 ''',
       nodeBuilders: {
         // Purple headers
-        HeaderNode: (ctx, node, style, isRevealed) {
+        HeaderNode: (ctx, node, style, isRevealed, [parent]) {
           final text = (node as HeaderNode).children
               .whereType<TextNode>()
               .map((e) => e.text)
@@ -283,7 +336,7 @@ Use :tag[custom] directives
         },
         
         // Rainbow bold
-        BoldNode: (ctx, node, style, isRevealed) {
+        BoldNode: (ctx, node, style, isRevealed, [parent]) {
           final text = (node as BoldNode).children
               .whereType<TextNode>()
               .map((e) => e.text)
@@ -303,7 +356,7 @@ Use :tag[custom] directives
         },
         
         // Custom directive chips
-        InlineDirectiveNode: (ctx, node, style, isRevealed) {
+        InlineDirectiveNode: (ctx, node, style, isRevealed, [parent]) {
           final directive = node as InlineDirectiveNode;
           if (isRevealed) {
             return TextSpan(text: ':${directive.name}[${directive.content}]');
