@@ -15,6 +15,7 @@ The existing rendering for standard commonmark should be customizable. By defaul
 
 ## Technical Specification
 
+
 ### 1. API Usage
 Consumers can provide a `nodeBuilders` map to the `MarkdownEditor`.
 
@@ -22,7 +23,11 @@ Consumers can provide a `nodeBuilders` map to the `MarkdownEditor`.
 MarkdownEditor(
   nodeBuilders: {
     // Override Header Rendering
-    HeaderNode: (context, node, style) {
+    HeaderNode: (context, node, style, isRevealed) {
+      if (isRevealed) {
+         // Return raw text or special "Edit Mode" widget
+         return TextSpan(text: (node as HeaderNode).text, style: style);
+      }
       final header = node as HeaderNode;
       return TextSpan(
         text: header.text, 
@@ -30,7 +35,7 @@ MarkdownEditor(
       );
     },
     // Override Bold Rendering
-    BoldNode: (context, node, style) {
+    BoldNode: (context, node, style, isRevealed) {
        return TextSpan(
          text: node.text,
          style: style.copyWith(background: Paint()..color = Colors.yellow),
@@ -47,7 +52,8 @@ MarkdownEditor(
 typedef NodeRenderer = InlineSpan Function(
   BuildContext context, 
   Node node, 
-  TextStyle style
+  TextStyle style,
+  bool isRevealed // True if cursor is overlapping/near the node
 );
 ```
 
