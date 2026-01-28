@@ -4,13 +4,11 @@ import 'package:blazing_protostar/src/features/editor/domain/models/node.dart';
 import 'package:blazing_protostar/src/features/editor/domain/models/block_state.dart';
 import 'package:blazing_protostar/src/features/editor/domain/backends/document_backend.dart';
 import 'package:blazing_protostar/src/features/editor/domain/backends/in_memory_backend.dart';
-import 'directive_builder.dart';
 import 'node_renderer.dart';
 
 class MarkdownTextEditingController extends TextEditingController {
   final MarkdownParser _parser;
   final DocumentBackend _backend;
-  final Map<String, DirectiveBuilder> directiveBuilders;
   final Map<Type, NodeRenderer> nodeBuilders;
 
   /// Flag to prevent re-entrancy when applying remote updates.
@@ -42,7 +40,6 @@ class MarkdownTextEditingController extends TextEditingController {
     DocumentBackend? backend,
     Duration throttleDuration = const Duration(milliseconds: 16),
     this.isWysiwygMode = true,
-    this.directiveBuilders = const {},
     this.nodeBuilders = const {},
   }) : _parser = parser,
        _backend = backend ?? InMemoryBackend(initialText: text ?? ''),
@@ -745,14 +742,7 @@ class MarkdownTextEditingController extends TextEditingController {
       } else if (node is EscapeNode) {
         newStyle = newStyle.copyWith(color: Colors.grey);
       } else if (node is InlineDirectiveNode) {
-        // Check if we have a builder for this key
-        final builder = directiveBuilders[node.name];
-        if (builder != null) {
-          childrenSpans.add(builder(context, node));
-          return TextSpan(children: childrenSpans);
-        }
-        // Fallback: Render exactly as written (raw text)
-        // This ensures opt-in behavior for custom rendering.
+        // Render directives as raw text by default (opt-in behavior via nodeBuilders)
         childrenSpans.add(
           TextSpan(
             text: text.substring(node.start, node.end),

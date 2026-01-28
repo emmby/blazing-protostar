@@ -31,20 +31,39 @@ This ensures that directives are an **opt-in** feature and don't accidentally hi
 
 ## Custom Rendering
 
-To render a directive as a Flutter widget, you must provide a `DirectiveBuilder` to the `MarkdownTextEditingController`.
+To render a directive as a Flutter widget, use the `nodeBuilders` parameter with `InlineDirectiveNode`.
 
-### 1. Define a Builder
+### 1. Define a Renderer
 
-A `DirectiveBuilder` is a function that takes a `BuildContext` and an `InlineDirectiveNode` and returns a `WidgetSpan`.
+A custom renderer for directives takes several parameters and returns an `InlineSpan` (usually a `WidgetSpan`).
 
 ```dart
-WidgetSpan userDirectiveBuilder(BuildContext context, InlineDirectiveNode node) {
+InlineSpan userDirectiveRenderer(
+  BuildContext context,
+  Node node,
+  TextStyle style,
+  bool isRevealed,
+) {
+  final directive = node as InlineDirectiveNode;
+  
   // Access content
-  final content = node.children.map((n) => n.text).join();
+  final content = directive.children
+      .whereType<TextNode>()
+      .map((n) => n.text)
+      .join();
   
   // Access arguments (if any)
-  final userId = node.args;
+  final userId = directive.args;
   
+  // Show raw text when editing (cursor nearby)
+  if (isRevealed) {
+    return TextSpan(
+      text: ':${directive.name}[$content]',
+      style: style.copyWith(color: Colors.grey),
+    );
+  }
+  
+  // Show custom widget in view mode
   return WidgetSpan(
     alignment: PlaceholderAlignment.middle,
     child: Chip(
@@ -56,21 +75,45 @@ WidgetSpan userDirectiveBuilder(BuildContext context, InlineDirectiveNode node) 
 }
 ```
 
-### 2. Register the Builder
+### 2. Register the Renderer
 
-Pass a map of builders to your controller:
+Pass the renderer to your controller using `nodeBuilders`:
 
 ```dart
 final controller = MarkdownTextEditingController(
   text: 'Hello :user[Mike]',
-  directiveBuilders: {
-    'user': userDirectiveBuilder,
-    'button': (context, node) {
-        // ... another builder
-        return WidgetSpan(child: TextButton(onPressed: () {}, child: Text('Click')));
+  nodeBuilders: {
+    InlineDirectiveNode: (context, node, style, isRevealed) {
+      final directive = node as InlineDirectiveNode;
+      final content = directive.children
+          .whereType<TextNode>()
+          .map((n) => n.text)
+          .join();
+      
+      // You can check directive.name to handle different directives
+      if (directive.name == 'user') {
+        return WidgetSpan(
+          child: Chip(
+            avatar: Icon(Icons.person, size: 16),
+            label: Text(content),
+          ),
+        );
+      } else if (directive.name == 'button') {
+        return WidgetSpan(
+          child: TextButton(
+            onPressed: () {},
+            child: Text(content),
+          ),
+        );
+      }
+      
+      // Fallback: render as raw text
+      return TextSpan(text: ':${directive.name}[$content]');
     },
   },
 );
 ```
 
-Now, `:user[Mike]` will render as a Chip, while `:other[thing]` will still render as raw text.
+Now, `:user[Mike]` will render as a Chip, `:button[Click]` as a button, and `:other[thing]` will render as raw text.
+
+For more advanced custom rendering (including other node types like headers, bold, links, etc.), see [Custom Rendering](custom_rendering.md).

@@ -9,14 +9,15 @@ void main() {
   ) async {
     final controller = MarkdownTextEditingController(
       text: 'Hello :test[User](123)',
-      directiveBuilders: {
-        'test': (context, node) {
+      nodeBuilders: {
+        InlineDirectiveNode: (context, node, style, isRevealed) {
+          final directive = node as InlineDirectiveNode;
           return WidgetSpan(
             child: Container(
               color: Colors.red,
               padding: const EdgeInsets.all(4),
               child: Text(
-                'Directive: ${node.name} content: ${node.children.map((c) => (c as TextNode).text).join()}',
+                'Directive: ${directive.name} content: ${directive.children.map((c) => (c as TextNode).text).join()}',
                 style: const TextStyle(color: Colors.white),
               ),
             ),

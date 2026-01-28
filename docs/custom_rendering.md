@@ -253,22 +253,6 @@ final text = node.children
 - Avoid expensive computations or network calls
 - For complex widgets, consider caching strategies
 
-## Backwards Compatibility
-
-The older `directiveBuilders` API (Map<String, DirectiveBuilder>) remains supported for directive-specific rendering:
-
-```dart
-final controller = MarkdownTextEditingController(
-  directiveBuilders: {
-    'child': (context, node) {
-      return WidgetSpan(child: Chip(label: Text(node.content)));
-    },
-  },
-);
-```
-
-However, the new `nodeBuilders` API is more flexible and recommended for new code.
-
 ## Complete Example
 
 ```dart
