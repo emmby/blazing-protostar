@@ -1,26 +1,78 @@
 import 'package:blazing_protostar/src/features/editor/domain/models/node.dart';
 import 'package:blazing_protostar/src/features/editor/presentation/renderers/render_context.dart';
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 
 /// Base class for all node renderers.
 ///
-/// Renderers are responsible for converting AST nodes into Flutter InlineSpans.
-/// Each node type should have its own renderer implementation.
+/// Uses the Template Method pattern to dispatch between WYSIWYG and Raw modes.
+/// Subclasses implement renderWysiwyg() and renderRaw() instead of render().
 abstract class BaseNodeRenderer {
   const BaseNodeRenderer();
 
-  /// Renders a node into an InlineSpan.
+  /// Main entry point - dispatches to appropriate mode based on WYSIWYG state.
   ///
-  /// - [context]: Build context for widget creation
-  /// - [node]: The AST node to render
-  /// - [style]: Base text style to apply
-  /// - [isRevealed]: Whether cursor is near this node (Edit Mode)
-  /// - [renderContext]: Provides access to controller state and recursive rendering
+  /// This is a template method that calls either renderWysiwyg() or renderRaw()
+  /// based on the mode and reveal state.
   InlineSpan render(
     BuildContext context,
     Node node,
     TextStyle style,
     bool isRevealed,
-    RenderContext renderContext,
-  );
+    RenderContext renderContext, {
+    Node? parent,
+  }) {
+    if (renderContext.isWysiwygMode && !isRevealed) {
+      return renderWysiwyg(context, node, style, renderContext, parent: parent);
+    } else {
+      return renderRaw(context, node, style, renderContext, parent: parent);
+    }
+  }
+
+  /// Render in WYSIWYG mode (control characters hidden).
+  ///
+  /// Called when WYSIWYG mode is enabled and the node is not revealed
+  /// (cursor not near this node).
+  InlineSpan renderWysiwyg(
+    BuildContext context,
+    Node node,
+    TextStyle style,
+    RenderContext renderContext, {
+    Node? parent,
+  });
+
+  /// Render in raw mode (control characters visible in grey).
+  ///
+  /// Called when WYSIWYG mode is disabled OR the node is revealed
+  /// (cursor near this node in Edit mode).
+  InlineSpan renderRaw(
+    BuildContext context,
+    Node node,
+    TextStyle style,
+    RenderContext renderContext, {
+    Node? parent,
+  });
+
+  /// Helper: Renders control characters (gap text) appropriately for the mode.
+  ///
+  /// - In WYSIWYG mode: zero-width invisible rendering
+  /// - In raw mode: visible grey text
+  TextSpan renderControlChars(String text, TextStyle style, bool isWysiwyg) {
+    if (isWysiwyg) {
+      return TextSpan(
+        text: text,
+        style: style.copyWith(
+          fontSize: 0,
+          color: Colors.transparent,
+          letterSpacing: 0,
+          wordSpacing: 0,
+          height: 0,
+        ),
+      );
+    } else {
+      return TextSpan(
+        text: text,
+        style: style.copyWith(color: Colors.grey),
+      );
+    }
+  }
 }

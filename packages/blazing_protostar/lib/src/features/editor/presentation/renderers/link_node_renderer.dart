@@ -8,48 +8,45 @@ class LinkNodeRenderer extends BaseNodeRenderer {
   const LinkNodeRenderer();
 
   @override
-  InlineSpan render(
+  InlineSpan renderWysiwyg(
     BuildContext context,
     Node node,
     TextStyle style,
-    bool isRevealed,
+    RenderContext renderContext, {
+    Node? parent,
+  }) {
+    return _renderWithStyle(node as ElementNode, style, renderContext, true);
+  }
+
+  @override
+  InlineSpan renderRaw(
+    BuildContext context,
+    Node node,
+    TextStyle style,
+    RenderContext renderContext, {
+    Node? parent,
+  }) {
+    return _renderWithStyle(node as ElementNode, style, renderContext, false);
+  }
+
+  /// Common rendering logic for both modes
+  InlineSpan _renderWithStyle(
+    ElementNode linkNode,
+    TextStyle style,
     RenderContext renderContext,
+    bool isWysiwyg,
   ) {
-    final linkNode = node as ElementNode;
     final newStyle = style.copyWith(
       color: Colors.blue,
       decoration: TextDecoration.underline,
     );
-
     final childrenSpans = <InlineSpan>[];
     int currentPos = linkNode.start;
 
     for (final child in linkNode.children) {
       if (child.start > currentPos) {
         final gapText = renderContext.text.substring(currentPos, child.start);
-        if (renderContext.isWysiwygMode && !isRevealed) {
-          // Zero-width rendering for control chars ([, ], (, ))
-          childrenSpans.add(
-            TextSpan(
-              text: gapText,
-              style: newStyle.copyWith(
-                fontSize: 0,
-                color: Colors.transparent,
-                letterSpacing: 0,
-                wordSpacing: 0,
-                height: 0,
-              ),
-            ),
-          );
-        } else {
-          // Normal mode OR revealed: show control chars in grey
-          childrenSpans.add(
-            TextSpan(
-              text: gapText,
-              style: newStyle.copyWith(color: Colors.grey),
-            ),
-          );
-        }
+        childrenSpans.add(renderControlChars(gapText, newStyle, isWysiwyg));
       }
 
       childrenSpans.add(renderContext.renderChild(child, newStyle, linkNode));
@@ -58,27 +55,7 @@ class LinkNodeRenderer extends BaseNodeRenderer {
 
     if (currentPos < linkNode.end) {
       final gapText = renderContext.text.substring(currentPos, linkNode.end);
-      if (renderContext.isWysiwygMode && !isRevealed) {
-        childrenSpans.add(
-          TextSpan(
-            text: gapText,
-            style: newStyle.copyWith(
-              fontSize: 0,
-              color: Colors.transparent,
-              letterSpacing: 0,
-              wordSpacing: 0,
-              height: 0,
-            ),
-          ),
-        );
-      } else {
-        childrenSpans.add(
-          TextSpan(
-            text: gapText,
-            style: newStyle.copyWith(color: Colors.grey),
-          ),
-        );
-      }
+      childrenSpans.add(renderControlChars(gapText, newStyle, isWysiwyg));
     }
 
     return TextSpan(children: childrenSpans);

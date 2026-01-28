@@ -11,7 +11,7 @@ void main() {
       final controller = MarkdownTextEditingController(
         text: '# Hello',
         nodeBuilders: {
-          HeaderNode: (context, node, style, isRevealed) {
+          HeaderNode: (context, node, style, isRevealed, [parent]) {
             final header = node as HeaderNode;
             final text = header.children
                 .whereType<TextNode>()
@@ -98,7 +98,7 @@ void main() {
       final controller = MarkdownTextEditingController(
         text: '**Bold**',
         nodeBuilders: {
-          BoldNode: (context, node, style, isRevealed) {
+          BoldNode: (context, node, style, isRevealed, [parent]) {
             return WidgetSpan(
               child: Container(
                 color: Colors.yellow,
@@ -143,7 +143,7 @@ void main() {
       final controller = MarkdownTextEditingController(
         text: '# Header',
         nodeBuilders: {
-          HeaderNode: (context, node, style, isRevealed) {
+          HeaderNode: (context, node, style, isRevealed, [parent]) {
             capturedIsRevealed = isRevealed;
             return TextSpan(text: 'Rendered');
           },

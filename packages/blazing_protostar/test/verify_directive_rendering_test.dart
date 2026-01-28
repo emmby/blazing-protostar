@@ -10,7 +10,7 @@ void main() {
     final controller = MarkdownTextEditingController(
       text: 'Hello :test[User](123)',
       nodeBuilders: {
-        InlineDirectiveNode: (context, node, style, isRevealed) {
+        InlineDirectiveNode: (context, node, style, isRevealed, [parent]) {
           final directive = node as InlineDirectiveNode;
           return WidgetSpan(
             child: Container(

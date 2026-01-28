@@ -10,32 +10,19 @@ class TextNodeRenderer extends BaseNodeRenderer {
   const TextNodeRenderer();
 
   @override
-  InlineSpan render(
+  InlineSpan renderWysiwyg(
     BuildContext context,
     Node node,
     TextStyle style,
-    bool isRevealed,
-    RenderContext renderContext,
-  ) {
+    RenderContext renderContext, {
+    Node? parent,
+  }) {
     final textNode = node as TextNode;
 
-    // Note: isRevealed is for the TextNode itself, but we need parent reveal state
-    // This is handled through the parent parameter in the dispatch logic
-
-    return TextSpan(text: textNode.text, style: style);
-  }
-
-  /// Special rendering logic for TextNode that depends on parent type.
-  /// This is called separately by the controller's dispatch logic.
-  InlineSpan renderWithParent(
-    TextNode node,
-    TextStyle style,
-    Node? parent,
-    RenderContext renderContext,
-  ) {
     // Determine if visual replacement should happen
     // We perform replacement if WYSIWYG is ON AND the parent is NOT revealed
-    bool shouldHideMarkers = renderContext.isWysiwygMode;
+    // Note: RenderContext.isWysiwygMode is already handled by BaseNodeRenderer's dispatch
+    bool shouldHideMarkers = true;
     if (parent != null && renderContext.shouldRevealNode(parent)) {
       shouldHideMarkers = false;
     }
@@ -43,7 +30,7 @@ class TextNodeRenderer extends BaseNodeRenderer {
     if (shouldHideMarkers) {
       // Case 1: List Items
       if (parent is ListItemNode) {
-        final nodeText = node.text;
+        final nodeText = textNode.text;
         // Match the list marker at start of text (e.g., "- " or "* " or "+ ")
         final markerMatch = RegExp(r'^([*+-])[ \t]+').firstMatch(nodeText);
         if (markerMatch != null) {
@@ -72,7 +59,7 @@ class TextNodeRenderer extends BaseNodeRenderer {
 
       // Case 2: Headers
       if (parent is HeaderNode) {
-        final nodeText = node.text;
+        final nodeText = textNode.text;
         // Match ATX header marker (e.g. "## ")
         final markerMatch = RegExp(r'^(#{1,6})[ \t]+').firstMatch(nodeText);
         if (markerMatch != null) {
@@ -82,16 +69,7 @@ class TextNodeRenderer extends BaseNodeRenderer {
 
           return TextSpan(
             children: [
-              TextSpan(
-                text: markerText,
-                style: style.copyWith(
-                  fontSize: 0,
-                  color: Colors.transparent,
-                  letterSpacing: 0,
-                  wordSpacing: 0,
-                  height: 0,
-                ),
-              ),
+              renderControlChars(markerText, style, true),
               TextSpan(text: contentText, style: style),
             ],
           );
@@ -99,6 +77,18 @@ class TextNodeRenderer extends BaseNodeRenderer {
       }
     }
 
-    return TextSpan(text: node.text, style: style);
+    return TextSpan(text: textNode.text, style: style);
+  }
+
+  @override
+  InlineSpan renderRaw(
+    BuildContext context,
+    Node node,
+    TextStyle style,
+    RenderContext renderContext, {
+    Node? parent,
+  }) {
+    final textNode = node as TextNode;
+    return TextSpan(text: textNode.text, style: style);
   }
 }

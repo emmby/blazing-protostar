@@ -8,15 +8,34 @@ class HeaderNodeRenderer extends BaseNodeRenderer {
   const HeaderNodeRenderer();
 
   @override
-  InlineSpan render(
+  InlineSpan renderWysiwyg(
     BuildContext context,
     Node node,
     TextStyle style,
-    bool isRevealed,
-    RenderContext renderContext,
-  ) {
-    final header = node as HeaderNode;
+    RenderContext renderContext, {
+    Node? parent,
+  }) {
+    return _renderWithStyle(node as HeaderNode, style, renderContext, true);
+  }
 
+  @override
+  InlineSpan renderRaw(
+    BuildContext context,
+    Node node,
+    TextStyle style,
+    RenderContext renderContext, {
+    Node? parent,
+  }) {
+    return _renderWithStyle(node as HeaderNode, style, renderContext, false);
+  }
+
+  /// Common rendering logic for both modes
+  InlineSpan _renderWithStyle(
+    HeaderNode header,
+    TextStyle style,
+    RenderContext renderContext,
+    bool isWysiwyg,
+  ) {
     // Calculate header style based on level
     double size;
     switch (header.level) {
@@ -54,29 +73,7 @@ class HeaderNodeRenderer extends BaseNodeRenderer {
     for (final child in header.children) {
       if (child.start > currentPos) {
         final gapText = renderContext.text.substring(currentPos, child.start);
-        if (renderContext.isWysiwygMode && !isRevealed) {
-          // Zero-width rendering for # markers
-          childrenSpans.add(
-            TextSpan(
-              text: gapText,
-              style: newStyle.copyWith(
-                fontSize: 0,
-                color: Colors.transparent,
-                letterSpacing: 0,
-                wordSpacing: 0,
-                height: 0,
-              ),
-            ),
-          );
-        } else {
-          // Normal mode OR revealed: show # in grey
-          childrenSpans.add(
-            TextSpan(
-              text: gapText,
-              style: newStyle.copyWith(color: Colors.grey),
-            ),
-          );
-        }
+        childrenSpans.add(renderControlChars(gapText, newStyle, isWysiwyg));
       }
 
       childrenSpans.add(renderContext.renderChild(child, newStyle, header));
@@ -85,27 +82,7 @@ class HeaderNodeRenderer extends BaseNodeRenderer {
 
     if (currentPos < header.end) {
       final gapText = renderContext.text.substring(currentPos, header.end);
-      if (renderContext.isWysiwygMode && !isRevealed) {
-        childrenSpans.add(
-          TextSpan(
-            text: gapText,
-            style: newStyle.copyWith(
-              fontSize: 0,
-              color: Colors.transparent,
-              letterSpacing: 0,
-              wordSpacing: 0,
-              height: 0,
-            ),
-          ),
-        );
-      } else {
-        childrenSpans.add(
-          TextSpan(
-            text: gapText,
-            style: newStyle.copyWith(color: Colors.grey),
-          ),
-        );
-      }
+      childrenSpans.add(renderControlChars(gapText, newStyle, isWysiwyg));
     }
 
     return TextSpan(children: childrenSpans);

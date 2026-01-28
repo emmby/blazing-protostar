@@ -8,40 +8,42 @@ class EscapeNodeRenderer extends BaseNodeRenderer {
   const EscapeNodeRenderer();
 
   @override
-  InlineSpan render(
+  InlineSpan renderWysiwyg(
     BuildContext context,
     Node node,
     TextStyle style,
-    bool isRevealed,
-    RenderContext renderContext,
-  ) {
-    final escapeNode = node as ElementNode;
-    final newStyle = style.copyWith(color: Colors.grey);
+    RenderContext renderContext, {
+    Node? parent,
+  }) {
+    return _renderWithStyle(node as ElementNode, style, renderContext, true);
+  }
 
+  @override
+  InlineSpan renderRaw(
+    BuildContext context,
+    Node node,
+    TextStyle style,
+    RenderContext renderContext, {
+    Node? parent,
+  }) {
+    return _renderWithStyle(node as ElementNode, style, renderContext, false);
+  }
+
+  /// Common rendering logic for both modes
+  InlineSpan _renderWithStyle(
+    ElementNode escapeNode,
+    TextStyle style,
+    RenderContext renderContext,
+    bool isWysiwyg,
+  ) {
+    final newStyle = style.copyWith(color: Colors.grey);
     final childrenSpans = <InlineSpan>[];
     int currentPos = escapeNode.start;
 
     for (final child in escapeNode.children) {
       if (child.start > currentPos) {
         final gapText = renderContext.text.substring(currentPos, child.start);
-        if (renderContext.isWysiwygMode && !isRevealed) {
-          // Zero-width rendering for backslash
-          childrenSpans.add(
-            TextSpan(
-              text: gapText,
-              style: newStyle.copyWith(
-                fontSize: 0,
-                color: Colors.transparent,
-                letterSpacing: 0,
-                wordSpacing: 0,
-                height: 0,
-              ),
-            ),
-          );
-        } else {
-          // Normal mode OR revealed: show backslash in grey
-          childrenSpans.add(TextSpan(text: gapText, style: newStyle));
-        }
+        childrenSpans.add(renderControlChars(gapText, newStyle, isWysiwyg));
       }
 
       childrenSpans.add(renderContext.renderChild(child, newStyle, escapeNode));
@@ -50,22 +52,7 @@ class EscapeNodeRenderer extends BaseNodeRenderer {
 
     if (currentPos < escapeNode.end) {
       final gapText = renderContext.text.substring(currentPos, escapeNode.end);
-      if (renderContext.isWysiwygMode && !isRevealed) {
-        childrenSpans.add(
-          TextSpan(
-            text: gapText,
-            style: newStyle.copyWith(
-              fontSize: 0,
-              color: Colors.transparent,
-              letterSpacing: 0,
-              wordSpacing: 0,
-              height: 0,
-            ),
-          ),
-        );
-      } else {
-        childrenSpans.add(TextSpan(text: gapText, style: newStyle));
-      }
+      childrenSpans.add(renderControlChars(gapText, newStyle, isWysiwyg));
     }
 
     return TextSpan(children: childrenSpans);

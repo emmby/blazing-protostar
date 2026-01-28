@@ -13,6 +13,7 @@ import 'renderers/link_node_renderer.dart';
 import 'renderers/escape_node_renderer.dart';
 import 'renderers/directive_node_renderer.dart';
 import 'renderers/element_node_renderer.dart';
+import 'renderers/text_node_renderer.dart';
 
 class MarkdownTextEditingController extends TextEditingController {
   final MarkdownParser _parser;
@@ -618,11 +619,12 @@ class MarkdownTextEditingController extends TextEditingController {
     const escapeRenderer = EscapeNodeRenderer();
     const directiveRenderer = DirectiveNodeRenderer();
     const elementRenderer = ElementNodeRenderer();
+    const textRenderer = TextNodeRenderer();
 
     // Return map with renderer calls that will receive context at render time
     // We'll wrap these to inject the RenderContext dynamically
     return {
-      HeaderNode: (context, node, style, isRevealed) {
+      HeaderNode: (context, node, style, isRevealed, [parent]) {
         final renderContext = _createRenderContext(context);
         return headerRenderer.render(
           context,
@@ -630,9 +632,10 @@ class MarkdownTextEditingController extends TextEditingController {
           style,
           isRevealed,
           renderContext,
+          parent: parent,
         );
       },
-      BoldNode: (context, node, style, isRevealed) {
+      BoldNode: (context, node, style, isRevealed, [parent]) {
         final renderContext = _createRenderContext(context);
         return boldRenderer.render(
           context,
@@ -640,9 +643,10 @@ class MarkdownTextEditingController extends TextEditingController {
           style,
           isRevealed,
           renderContext,
+          parent: parent,
         );
       },
-      ItalicNode: (context, node, style, isRevealed) {
+      ItalicNode: (context, node, style, isRevealed, [parent]) {
         final renderContext = _createRenderContext(context);
         return italicRenderer.render(
           context,
@@ -650,9 +654,10 @@ class MarkdownTextEditingController extends TextEditingController {
           style,
           isRevealed,
           renderContext,
+          parent: parent,
         );
       },
-      LinkNode: (context, node, style, isRevealed) {
+      LinkNode: (context, node, style, isRevealed, [parent]) {
         final renderContext = _createRenderContext(context);
         return linkRenderer.render(
           context,
@@ -660,9 +665,10 @@ class MarkdownTextEditingController extends TextEditingController {
           style,
           isRevealed,
           renderContext,
+          parent: parent,
         );
       },
-      EscapeNode: (context, node, style, isRevealed) {
+      EscapeNode: (context, node, style, isRevealed, [parent]) {
         final renderContext = _createRenderContext(context);
         return escapeRenderer.render(
           context,
@@ -670,9 +676,10 @@ class MarkdownTextEditingController extends TextEditingController {
           style,
           isRevealed,
           renderContext,
+          parent: parent,
         );
       },
-      InlineDirectiveNode: (context, node, style, isRevealed) {
+      InlineDirectiveNode: (context, node, style, isRevealed, [parent]) {
         final renderContext = _createRenderContext(context);
         return directiveRenderer.render(
           context,
@@ -680,9 +687,10 @@ class MarkdownTextEditingController extends TextEditingController {
           style,
           isRevealed,
           renderContext,
+          parent: parent,
         );
       },
-      ParagraphNode: (context, node, style, isRevealed) {
+      ParagraphNode: (context, node, style, isRevealed, [parent]) {
         final renderContext = _createRenderContext(context);
         return elementRenderer.render(
           context,
@@ -690,9 +698,10 @@ class MarkdownTextEditingController extends TextEditingController {
           style,
           isRevealed,
           renderContext,
+          parent: parent,
         );
       },
-      UnorderedListNode: (context, node, style, isRevealed) {
+      UnorderedListNode: (context, node, style, isRevealed, [parent]) {
         final renderContext = _createRenderContext(context);
         return elementRenderer.render(
           context,
@@ -700,9 +709,10 @@ class MarkdownTextEditingController extends TextEditingController {
           style,
           isRevealed,
           renderContext,
+          parent: parent,
         );
       },
-      OrderedListNode: (context, node, style, isRevealed) {
+      OrderedListNode: (context, node, style, isRevealed, [parent]) {
         final renderContext = _createRenderContext(context);
         return elementRenderer.render(
           context,
@@ -710,9 +720,10 @@ class MarkdownTextEditingController extends TextEditingController {
           style,
           isRevealed,
           renderContext,
+          parent: parent,
         );
       },
-      ListItemNode: (context, node, style, isRevealed) {
+      ListItemNode: (context, node, style, isRevealed, [parent]) {
         final renderContext = _createRenderContext(context);
         return elementRenderer.render(
           context,
@@ -720,9 +731,10 @@ class MarkdownTextEditingController extends TextEditingController {
           style,
           isRevealed,
           renderContext,
+          parent: parent,
         );
       },
-      DocumentNode: (context, node, style, isRevealed) {
+      DocumentNode: (context, node, style, isRevealed, [parent]) {
         final renderContext = _createRenderContext(context);
         return elementRenderer.render(
           context,
@@ -730,6 +742,18 @@ class MarkdownTextEditingController extends TextEditingController {
           style,
           isRevealed,
           renderContext,
+          parent: parent,
+        );
+      },
+      TextNode: (context, node, style, isRevealed, [parent]) {
+        final renderContext = _createRenderContext(context);
+        return textRenderer.render(
+          context,
+          node,
+          style,
+          isRevealed,
+          renderContext,
+          parent: parent,
         );
       },
     };
@@ -754,17 +778,12 @@ class MarkdownTextEditingController extends TextEditingController {
     TextStyle currentStyle,
     Node? parent,
   ) {
-    // Special handling for TextNode with parent-specific behavior
-    if (node is TextNode) {
-      return _renderTextNode(context, node, currentStyle, parent);
-    }
-
     // Look up renderer for this node type
     final shouldRevealSelf = _shouldRevealNode(node);
     final renderer = _nodeRenderers[node.runtimeType];
 
     if (renderer != null) {
-      return renderer(context, node, currentStyle, shouldRevealSelf);
+      return renderer(context, node, currentStyle, shouldRevealSelf, parent);
     }
 
     // Fallback for unknown node types
@@ -772,93 +791,6 @@ class MarkdownTextEditingController extends TextEditingController {
       text: '[Unknown Node: ${node.runtimeType}]',
       style: currentStyle.copyWith(color: Colors.red),
     );
-  }
-
-  /// Default renderer for TextNode (has parent-specific behavior)
-  InlineSpan _renderTextNode(
-    BuildContext context,
-    TextNode node,
-    TextStyle currentStyle,
-    Node? parent,
-  ) {
-    // Check for custom TextNode renderer first
-    final shouldRevealSelf = _shouldRevealNode(node);
-    if (nodeBuilders.containsKey(TextNode)) {
-      return nodeBuilders[TextNode]!(
-        context,
-        node,
-        currentStyle,
-        shouldRevealSelf,
-      );
-    }
-
-    // Determine if visual replacement should happen
-    // We perform replacement if WYSIWYG is ON AND the parent is NOT revealed
-    bool shouldHideMarkers = isWysiwygMode;
-    if (parent != null && _shouldRevealNode(parent)) {
-      shouldHideMarkers = false;
-    }
-
-    if (shouldHideMarkers) {
-      // Case 1: List Items
-      if (parent is ListItemNode) {
-        final nodeText = node.text;
-        // Match the list marker at start of text (e.g., "- " or "* " or "+ ")
-        final markerMatch = RegExp(r'^([*+-])[ \t]+').firstMatch(nodeText);
-        if (markerMatch != null) {
-          final markerLength = markerMatch.end;
-          final markerText = nodeText.substring(0, markerLength);
-          final contentText = nodeText.substring(markerLength);
-
-          // Create a replacement string of exact same length
-          // e.g. "- " -> "• "
-          // This preserves offsets for cursor navigation
-          final replacementText = '•${markerText.substring(1)}';
-
-          return TextSpan(
-            children: [
-              // Render visible bullet replacement
-              TextSpan(
-                text: replacementText,
-                style: currentStyle.copyWith(color: Colors.grey.shade600),
-              ),
-              // Render remaining content normally
-              TextSpan(text: contentText, style: currentStyle),
-            ],
-          );
-        }
-      }
-
-      // Case 2: Headers
-      if (parent is HeaderNode) {
-        final nodeText = node.text;
-        // Match ATX header marker (e.g. "## ")
-        final markerMatch = RegExp(r'^(#{1,6})[ \t]+').firstMatch(nodeText);
-        if (markerMatch != null) {
-          final markerLength = markerMatch.end;
-          final markerText = nodeText.substring(0, markerLength);
-          final contentText = nodeText.substring(markerLength);
-
-          return TextSpan(
-            children: [
-              TextSpan(
-                text: markerText,
-                style: currentStyle.copyWith(
-                  fontSize: 0,
-                  color: Colors.transparent,
-                  letterSpacing: 0,
-                  wordSpacing: 0,
-                  height: 0,
-                ),
-              ),
-              TextSpan(text: contentText, style: currentStyle),
-            ],
-          );
-        }
-      }
-    }
-
-    return TextSpan(text: node.text, style: currentStyle);
   }
 
   /// Public entry point for rendering nodes.

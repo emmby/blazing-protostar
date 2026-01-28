@@ -11,11 +11,33 @@ class DirectiveNodeRenderer extends BaseNodeRenderer {
   const DirectiveNodeRenderer();
 
   @override
-  InlineSpan render(
+  InlineSpan renderWysiwyg(
     BuildContext context,
     Node node,
     TextStyle style,
-    bool isRevealed,
+    RenderContext renderContext, {
+    Node? parent,
+  }) {
+    // Both modes render the same way - as raw text
+    return _renderAsRawText(node, style, renderContext);
+  }
+
+  @override
+  InlineSpan renderRaw(
+    BuildContext context,
+    Node node,
+    TextStyle style,
+    RenderContext renderContext, {
+    Node? parent,
+  }) {
+    // Both modes render the same way - as raw text
+    return _renderAsRawText(node, style, renderContext);
+  }
+
+  /// Renders directive as raw text (default behavior)
+  InlineSpan _renderAsRawText(
+    Node node,
+    TextStyle style,
     RenderContext renderContext,
   ) {
     final directive = node as InlineDirectiveNode;

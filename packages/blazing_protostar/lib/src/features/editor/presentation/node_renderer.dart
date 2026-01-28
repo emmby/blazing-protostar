@@ -12,5 +12,6 @@ typedef NodeRenderer =
       BuildContext context,
       Node node,
       TextStyle style,
-      bool isRevealed,
-    );
+      bool isRevealed, [
+      Node? parent,
+    ]);

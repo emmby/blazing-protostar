@@ -8,45 +8,42 @@ class ItalicNodeRenderer extends BaseNodeRenderer {
   const ItalicNodeRenderer();
 
   @override
-  InlineSpan render(
+  InlineSpan renderWysiwyg(
     BuildContext context,
     Node node,
     TextStyle style,
-    bool isRevealed,
-    RenderContext renderContext,
-  ) {
-    final italicNode = node as ElementNode;
-    final newStyle = style.copyWith(fontStyle: FontStyle.italic);
+    RenderContext renderContext, {
+    Node? parent,
+  }) {
+    return _renderWithStyle(node as ElementNode, style, renderContext, true);
+  }
 
+  @override
+  InlineSpan renderRaw(
+    BuildContext context,
+    Node node,
+    TextStyle style,
+    RenderContext renderContext, {
+    Node? parent,
+  }) {
+    return _renderWithStyle(node as ElementNode, style, renderContext, false);
+  }
+
+  /// Common rendering logic for both modes
+  InlineSpan _renderWithStyle(
+    ElementNode italicNode,
+    TextStyle style,
+    RenderContext renderContext,
+    bool isWysiwyg,
+  ) {
+    final newStyle = style.copyWith(fontStyle: FontStyle.italic);
     final childrenSpans = <InlineSpan>[];
     int currentPos = italicNode.start;
 
     for (final child in italicNode.children) {
       if (child.start > currentPos) {
         final gapText = renderContext.text.substring(currentPos, child.start);
-        if (renderContext.isWysiwygMode && !isRevealed) {
-          // Zero-width rendering for control chars (*)
-          childrenSpans.add(
-            TextSpan(
-              text: gapText,
-              style: newStyle.copyWith(
-                fontSize: 0,
-                color: Colors.transparent,
-                letterSpacing: 0,
-                wordSpacing: 0,
-                height: 0,
-              ),
-            ),
-          );
-        } else {
-          // Normal mode OR revealed: show control chars in grey
-          childrenSpans.add(
-            TextSpan(
-              text: gapText,
-              style: newStyle.copyWith(color: Colors.grey),
-            ),
-          );
-        }
+        childrenSpans.add(renderControlChars(gapText, newStyle, isWysiwyg));
       }
 
       childrenSpans.add(renderContext.renderChild(child, newStyle, italicNode));
@@ -55,27 +52,7 @@ class ItalicNodeRenderer extends BaseNodeRenderer {
 
     if (currentPos < italicNode.end) {
       final gapText = renderContext.text.substring(currentPos, italicNode.end);
-      if (renderContext.isWysiwygMode && !isRevealed) {
-        childrenSpans.add(
-          TextSpan(
-            text: gapText,
-            style: newStyle.copyWith(
-              fontSize: 0,
-              color: Colors.transparent,
-              letterSpacing: 0,
-              wordSpacing: 0,
-              height: 0,
-            ),
-          ),
-        );
-      } else {
-        childrenSpans.add(
-          TextSpan(
-            text: gapText,
-            style: newStyle.copyWith(color: Colors.grey),
-          ),
-        );
-      }
+      childrenSpans.add(renderControlChars(gapText, newStyle, isWysiwyg));
     }
 
     return TextSpan(children: childrenSpans);
