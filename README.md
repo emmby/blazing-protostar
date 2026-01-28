@@ -24,21 +24,27 @@ A high-performance, aesthetically pleasing Markdown Editor for Flutter. Built wi
     -   **Reactive Highlighting**: Buttons highlight based on cursor position.
     -   **Configurable Positioning**: Can be placed as a header (Top) or footer (Bottom).
 
-4.  **Collaborative Editing (Optional)** ✅
+4.  **Autocomplete API** ✅
+    -   **Ghost Text**: Display inline completion suggestions at cursor.
+    -   **Custom Logic**: Developers implement their own suggestion logic.
+    -   **Zero-Config**: Works with simplified controller API.
+    -   *Details*: See [Autocomplete](docs/autocomplete.md).
+
+5.  **Collaborative Editing (Optional)** ✅
     -   Real-time collaboration via **Y.js** CRDT.
     -   **Block-Aware Sync**: Robust conflict resolution for concurrent edits.
     -   **Cross-Tab Sync**: Edits sync across browser tabs via `BroadcastChannel`.
     -   *Details*: See [crdt.md](docs/crdt.md) for technical requirements.
 
-5.  **WYSIWYG Toggle** 🚧
+6.  **WYSIWYG Toggle** 🚧
     -   A toggleable mode that hides control characters while preserving styling.
     -   Allows users to see the rendered output without distraction ("Zen Mode").
 
-6.  **Read-Only Mode** 🚧
+7.  **Read-Only Mode** 🚧
     -   Disables editing capabilities.
     -   Useful for previews or displaying static content.
 
-7.  **Full Theme Customization** 🚧
+8.  **Full Theme Customization** 🚧
     -   Control all visual aspects (colors, text styles, syntax opacity) via a theme object.
     -   *Rationale*: Ensures the editor can adapt to any design system.
 
@@ -126,6 +132,7 @@ Detailed specifications are in the `docs/` directory:
 -   [CRDT & Collaboration](docs/crdt.md) - Yjs integration details.
 -   [Toolbar Customization](docs/toolbar.md) - How to customize the toolbar.
 -   [Directives Usage](docs/directives.md) - Custom widget guide.
+-   [Autocomplete](docs/autocomplete.md) - Ghost text API guide.
 
 ## 🧪 Testing
 

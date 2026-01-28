@@ -7,12 +7,12 @@ class InlineDirectiveNode extends ElementNode {
 
   InlineDirectiveNode({
     required this.name,
-    required List<Node> children,
-    required int start,
-    required int end,
+    required super.children,
+    required super.start,
+    required super.end,
     this.args,
     this.attributes,
-  }) : super(children: children, start: start, end: end);
+  });
 
   @override
   String get type => 'directive';

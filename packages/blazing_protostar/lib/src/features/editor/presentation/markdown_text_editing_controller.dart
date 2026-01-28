@@ -25,6 +25,13 @@ class MarkdownTextEditingController extends TextEditingController {
   /// This can be toggled at runtime.
   bool isWysiwygMode;
 
+  /// Ghost text to display at cursor position for autocomplete suggestions.
+  /// Set to null or empty string to hide.
+  String? _ghostText;
+
+  /// Public getter for ghost text
+  String? get ghostText => _ghostText;
+
   DocumentNode? _lastParsedDocument;
 
   MarkdownTextEditingController({
@@ -375,6 +382,40 @@ class MarkdownTextEditingController extends TextEditingController {
     return headerMatch?.group(1)?.length ?? 0;
   }
 
+  /// Sets ghost text for autocomplete suggestions.
+  /// Input will be automatically sanitized (newlines/tabs replaced with spaces,
+  /// control characters stripped).
+  void setGhostText(String? text) {
+    if (text == null || text.isEmpty) {
+      clearGhostText();
+      return;
+    }
+    _ghostText = _sanitizeGhostText(text);
+    notifyListeners();
+  }
+
+  /// Clears the current ghost text.
+  void clearGhostText() {
+    if (_ghostText == null) return;
+    _ghostText = null;
+    notifyListeners();
+  }
+
+  /// Sanitizes ghost text by replacing newlines and tabs with spaces,
+  /// and stripping control characters.
+  String _sanitizeGhostText(String text) {
+    // Replace newlines and tabs with spaces
+    var sanitized = text
+        .replaceAll('\n', ' ')
+        .replaceAll('\t', ' ')
+        .replaceAll('\r', ' ');
+
+    // Strip control characters (ASCII 0-31 except space) but preserve unicode/emoji
+    sanitized = sanitized.replaceAll(RegExp(r'[\x00-\x1F]'), '');
+
+    return sanitized;
+  }
+
   @override
   TextSpan buildTextSpan({
     required BuildContext context,
@@ -387,7 +428,151 @@ class MarkdownTextEditingController extends TextEditingController {
 
     // 2. Convert AST to TextSpans with Styling
     // We pass the "default" style (likely from TextField) as the base.
-    return _renderNode(context, document, style ?? const TextStyle(), null);
+    final baseSpan = _renderNode(
+      context,
+      document,
+      style ?? const TextStyle(),
+      null,
+    );
+
+    // 3. If ghost text exists, inject it at cursor position
+    if (_ghostText != null &&
+        _ghostText!.isNotEmpty &&
+        selection.isValid &&
+        selection.isCollapsed) {
+      return _injectGhostText(context, baseSpan, style);
+    }
+
+    return baseSpan;
+  }
+
+  /// Injects ghost text at the cursor position by walking the TextSpan tree.
+  TextSpan _injectGhostText(
+    BuildContext context,
+    TextSpan baseSpan,
+    TextStyle? baseStyle,
+  ) {
+    final cursorOffset = selection.baseOffset;
+
+    // Calculate ghost text style: theme-based color with 0.4 opacity
+    final defaultColor =
+        baseStyle?.color ??
+        DefaultTextStyle.of(context).style.color ??
+        Colors.black;
+    final ghostStyle = (baseStyle ?? const TextStyle()).copyWith(
+      // ignore: deprecated_member_use
+      color: defaultColor.withOpacity(0.4),
+    );
+
+    // Walk the TextSpan tree and inject ghost text at cursor position
+    return _injectGhostTextRecursive(baseSpan, cursorOffset, ghostStyle, 0);
+  }
+
+  /// Recursively walks TextSpan tree to find cursor position and inject ghost text.
+  TextSpan _injectGhostTextRecursive(
+    TextSpan span,
+    int targetOffset,
+    TextStyle ghostStyle,
+    int currentOffset,
+  ) {
+    if (span.text != null) {
+      // Handle text span (leaf node with text)
+      final textLength = span.text!.length;
+      final textEnd = currentOffset + textLength;
+
+      if (targetOffset >= currentOffset && targetOffset <= textEnd) {
+        final children = <InlineSpan>[];
+
+        // Split text
+        final beforeText = span.text!.substring(
+          0,
+          targetOffset - currentOffset,
+        );
+        final afterText = span.text!.substring(targetOffset - currentOffset);
+
+        if (beforeText.isNotEmpty) {
+          children.add(TextSpan(text: beforeText, style: span.style));
+        }
+
+        children.add(TextSpan(text: _ghostText, style: ghostStyle));
+
+        if (afterText.isNotEmpty) {
+          children.add(TextSpan(text: afterText, style: span.style));
+        }
+
+        if (span.children != null) {
+          children.addAll(span.children!);
+        }
+
+        return TextSpan(children: children, style: span.style);
+      }
+      // If not in this text range, return unmodified
+      return span;
+    }
+
+    // Handle container span
+    final children = span.children ?? const [];
+    final newChildren = <InlineSpan>[];
+    int offset = currentOffset;
+    bool injected = false;
+
+    for (final child in children) {
+      if (injected) {
+        newChildren.add(child);
+        continue;
+      }
+
+      if (child is TextSpan) {
+        final childLen = _calculateSpanLength(child);
+        final childEnd = offset + childLen;
+
+        // Try to inject if cursor is covering this child
+        if (targetOffset >= offset && targetOffset <= childEnd) {
+          newChildren.add(
+            _injectGhostTextRecursive(child, targetOffset, ghostStyle, offset),
+          );
+          injected = true;
+          offset = childEnd;
+          continue;
+        }
+
+        offset = childEnd;
+        newChildren.add(child);
+      } else {
+        // WidgetSpan or other
+        newChildren.add(child);
+        // Assume length 1 for non-TextSpan (placeholder)
+        // Adjust if your parser handles length differently for embedded widgets
+        offset += 1;
+      }
+    }
+
+    // Capture the case where cursor is at the very end of this container
+    if (!injected && targetOffset == offset) {
+      newChildren.add(TextSpan(text: _ghostText, style: ghostStyle));
+      injected = true;
+    }
+
+    if (injected) {
+      return TextSpan(children: newChildren, style: span.style);
+    }
+
+    return span;
+  }
+
+  /// Calculates the total text length of a TextSpan (including children).
+  int _calculateSpanLength(TextSpan span) {
+    int length = span.text?.length ?? 0;
+
+    if (span.children != null) {
+      for (final child in span.children!) {
+        if (child is TextSpan) {
+          length += _calculateSpanLength(child);
+        }
+      }
+    }
+
+    return length;
   }
 
   /// Checks if the node should be revealed based on cursor proximity.
