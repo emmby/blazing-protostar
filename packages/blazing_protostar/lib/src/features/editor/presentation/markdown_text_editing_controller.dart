@@ -5,11 +5,22 @@ import 'package:blazing_protostar/src/features/editor/domain/models/block_state.
 import 'package:blazing_protostar/src/features/editor/domain/backends/document_backend.dart';
 import 'package:blazing_protostar/src/features/editor/domain/backends/in_memory_backend.dart';
 import 'node_renderer.dart';
+import 'renderers/render_context.dart';
+import 'renderers/header_node_renderer.dart';
+import 'renderers/bold_node_renderer.dart';
+import 'renderers/italic_node_renderer.dart';
+import 'renderers/link_node_renderer.dart';
+import 'renderers/escape_node_renderer.dart';
+import 'renderers/directive_node_renderer.dart';
+import 'renderers/element_node_renderer.dart';
 
 class MarkdownTextEditingController extends TextEditingController {
   final MarkdownParser _parser;
   final DocumentBackend _backend;
   final Map<Type, NodeRenderer> nodeBuilders;
+
+  /// Combined map of node renderers (defaults + custom overrides)
+  late final Map<Type, NodeRenderer> _nodeRenderers;
 
   /// Flag to prevent re-entrancy when applying remote updates.
   bool _isApplyingRemoteUpdate = false;
@@ -47,6 +58,9 @@ class MarkdownTextEditingController extends TextEditingController {
     _blocks = _splitIntoBlocks(_backend.text);
     _backend.addListener(_onBackendChanged);
     addListener(_updateActiveStyles);
+
+    // Initialize _nodeRenderers with defaults, then apply custom overrides
+    _nodeRenderers = {..._getDefaultRenderers(), ...nodeBuilders};
   }
 
   void _onBackendChanged() {
@@ -594,176 +608,241 @@ class MarkdownTextEditingController extends TextEditingController {
     return cursor >= node.start && cursor <= node.end;
   }
 
-  InlineSpan _renderNode(
+  /// Instantiates and returns default node renderers.
+  Map<Type, NodeRenderer> _getDefaultRenderers() {
+    // Instantiate default renderer classes
+    const headerRenderer = HeaderNodeRenderer();
+    const boldRenderer = BoldNodeRenderer();
+    const italicRenderer = ItalicNodeRenderer();
+    const linkRenderer = LinkNodeRenderer();
+    const escapeRenderer = EscapeNodeRenderer();
+    const directiveRenderer = DirectiveNodeRenderer();
+    const elementRenderer = ElementNodeRenderer();
+
+    // Return map with renderer calls that will receive context at render time
+    // We'll wrap these to inject the RenderContext dynamically
+    return {
+      HeaderNode: (context, node, style, isRevealed) {
+        final renderContext = _createRenderContext(context);
+        return headerRenderer.render(
+          context,
+          node,
+          style,
+          isRevealed,
+          renderContext,
+        );
+      },
+      BoldNode: (context, node, style, isRevealed) {
+        final renderContext = _createRenderContext(context);
+        return boldRenderer.render(
+          context,
+          node,
+          style,
+          isRevealed,
+          renderContext,
+        );
+      },
+      ItalicNode: (context, node, style, isRevealed) {
+        final renderContext = _createRenderContext(context);
+        return italicRenderer.render(
+          context,
+          node,
+          style,
+          isRevealed,
+          renderContext,
+        );
+      },
+      LinkNode: (context, node, style, isRevealed) {
+        final renderContext = _createRenderContext(context);
+        return linkRenderer.render(
+          context,
+          node,
+          style,
+          isRevealed,
+          renderContext,
+        );
+      },
+      EscapeNode: (context, node, style, isRevealed) {
+        final renderContext = _createRenderContext(context);
+        return escapeRenderer.render(
+          context,
+          node,
+          style,
+          isRevealed,
+          renderContext,
+        );
+      },
+      InlineDirectiveNode: (context, node, style, isRevealed) {
+        final renderContext = _createRenderContext(context);
+        return directiveRenderer.render(
+          context,
+          node,
+          style,
+          isRevealed,
+          renderContext,
+        );
+      },
+      ParagraphNode: (context, node, style, isRevealed) {
+        final renderContext = _createRenderContext(context);
+        return elementRenderer.render(
+          context,
+          node,
+          style,
+          isRevealed,
+          renderContext,
+        );
+      },
+      UnorderedListNode: (context, node, style, isRevealed) {
+        final renderContext = _createRenderContext(context);
+        return elementRenderer.render(
+          context,
+          node,
+          style,
+          isRevealed,
+          renderContext,
+        );
+      },
+      OrderedListNode: (context, node, style, isRevealed) {
+        final renderContext = _createRenderContext(context);
+        return elementRenderer.render(
+          context,
+          node,
+          style,
+          isRevealed,
+          renderContext,
+        );
+      },
+      ListItemNode: (context, node, style, isRevealed) {
+        final renderContext = _createRenderContext(context);
+        return elementRenderer.render(
+          context,
+          node,
+          style,
+          isRevealed,
+          renderContext,
+        );
+      },
+      DocumentNode: (context, node, style, isRevealed) {
+        final renderContext = _createRenderContext(context);
+        return elementRenderer.render(
+          context,
+          node,
+          style,
+          isRevealed,
+          renderContext,
+        );
+      },
+    };
+  }
+
+  /// Creates a RenderContext for the current render operation.
+  RenderContext _createRenderContext(BuildContext context) {
+    return RenderContext(
+      text: text,
+      isWysiwygMode: isWysiwygMode,
+      renderChild: (node, style, parent) =>
+          _dispatchRender(context, node, style, parent),
+      shouldRevealNode: _shouldRevealNode,
+    );
+  }
+
+  /// Main dispatcher that routes nodes to their registered renderers.
+  /// This replaces the old _renderNode logic.
+  InlineSpan _dispatchRender(
     BuildContext context,
     Node node,
     TextStyle currentStyle,
     Node? parent,
   ) {
-    // Handle TextNode - special case for list items and headers
+    // Special handling for TextNode with parent-specific behavior
     if (node is TextNode) {
-      // Check if we have a custom renderer for TextNode (rare but possible)
-      final shouldRevealSelf = _shouldRevealNode(node);
-      if (nodeBuilders.containsKey(node.runtimeType)) {
-        return nodeBuilders[node.runtimeType]!(
-          context,
-          node,
-          currentStyle,
-          shouldRevealSelf,
-        );
-      }
-
-      // Determine if visual replacement should happen
-      // We perform replacement if WYSIWYG is ON AND the parent is NOT revealed
-      bool shouldHideMarkers = isWysiwygMode;
-      if (parent != null && _shouldRevealNode(parent)) {
-        shouldHideMarkers = false;
-      }
-
-      if (shouldHideMarkers) {
-        // Case 1: List Items
-        if (parent is ListItemNode) {
-          final nodeText = node.text;
-          // Match the list marker at start of text (e.g., "- " or "* " or "+ ")
-          final markerMatch = RegExp(r'^([*+-])[ \t]+').firstMatch(nodeText);
-          if (markerMatch != null) {
-            final markerLength = markerMatch.end;
-            final markerText = nodeText.substring(0, markerLength);
-            final contentText = nodeText.substring(markerLength);
-
-            // Create a replacement string of exact same length
-            // e.g. "- " -> "• "
-            // This preserves offsets for cursor navigation
-            final replacementText = '•${markerText.substring(1)}';
-
-            return TextSpan(
-              children: [
-                // Render visible bullet replacement
-                TextSpan(
-                  text: replacementText,
-                  style: currentStyle.copyWith(color: Colors.grey.shade600),
-                ),
-                // Render remaining content normally
-                TextSpan(text: contentText, style: currentStyle),
-              ],
-            );
-          }
-        }
-
-        // Case 2: Headers
-        if (parent is HeaderNode) {
-          final nodeText = node.text;
-          // Match ATX header marker (e.g. "## ")
-          final markerMatch = RegExp(r'^(#{1,6})[ \t]+').firstMatch(nodeText);
-          if (markerMatch != null) {
-            final markerLength = markerMatch.end;
-            final markerText = nodeText.substring(0, markerLength);
-            final contentText = nodeText.substring(markerLength);
-
-            return TextSpan(
-              children: [
-                TextSpan(
-                  text: markerText,
-                  style: currentStyle.copyWith(
-                    fontSize: 0,
-                    color: Colors.transparent,
-                    letterSpacing: 0,
-                    wordSpacing: 0,
-                    height: 0,
-                  ),
-                ),
-                TextSpan(text: contentText, style: currentStyle),
-              ],
-            );
-          }
-        }
-      }
-      return TextSpan(text: node.text, style: currentStyle);
+      return _renderTextNode(context, node, currentStyle, parent);
     }
 
-    if (node is ElementNode) {
-      final childrenSpans = <InlineSpan>[];
+    // Look up renderer for this node type
+    final shouldRevealSelf = _shouldRevealNode(node);
+    final renderer = _nodeRenderers[node.runtimeType];
 
-      // Determine if we should reveal this node's control characters
-      final shouldRevealSelf = _shouldRevealNode(node);
+    if (renderer != null) {
+      return renderer(context, node, currentStyle, shouldRevealSelf);
+    }
 
-      // Check for custom renderer
-      if (nodeBuilders.containsKey(node.runtimeType)) {
-        return nodeBuilders[node.runtimeType]!(
-          context,
-          node,
-          currentStyle,
-          shouldRevealSelf,
-        );
-      }
+    // Fallback for unknown node types
+    return TextSpan(
+      text: '[Unknown Node: ${node.runtimeType}]',
+      style: currentStyle.copyWith(color: Colors.red),
+    );
+  }
 
-      // Calculate new style based on Node Type
-      var newStyle = currentStyle;
+  /// Default renderer for TextNode (has parent-specific behavior)
+  InlineSpan _renderTextNode(
+    BuildContext context,
+    TextNode node,
+    TextStyle currentStyle,
+    Node? parent,
+  ) {
+    // Check for custom TextNode renderer first
+    final shouldRevealSelf = _shouldRevealNode(node);
+    if (nodeBuilders.containsKey(TextNode)) {
+      return nodeBuilders[TextNode]!(
+        context,
+        node,
+        currentStyle,
+        shouldRevealSelf,
+      );
+    }
 
-      if (node is HeaderNode) {
-        // Headers scale based on level
-        double size;
-        switch (node.level) {
-          case 1:
-            size = 32.0;
-            break;
-          case 2:
-            size = 26.0;
-            break;
-          case 3:
-            size = 22.0;
-            break;
-          case 4:
-            size = 19.0;
-            break;
-          case 5:
-            size = 16.0;
-            break;
-          case 6:
-          default:
-            size = 14.0;
-            break;
-        }
+    // Determine if visual replacement should happen
+    // We perform replacement if WYSIWYG is ON AND the parent is NOT revealed
+    bool shouldHideMarkers = isWysiwygMode;
+    if (parent != null && _shouldRevealNode(parent)) {
+      shouldHideMarkers = false;
+    }
 
-        newStyle = newStyle.copyWith(
-          fontSize: size,
-          fontWeight: FontWeight.bold,
-          color: Colors.black87, // Phase 1 theme hardcoded
-        );
-      } else if (node is BoldNode) {
-        newStyle = newStyle.copyWith(fontWeight: FontWeight.bold);
-      } else if (node is ItalicNode) {
-        newStyle = newStyle.copyWith(fontStyle: FontStyle.italic);
-      } else if (node is LinkNode) {
-        newStyle = newStyle.copyWith(
-          color: Colors.blue,
-          decoration: TextDecoration.underline,
-        );
-      } else if (node is EscapeNode) {
-        newStyle = newStyle.copyWith(color: Colors.grey);
-      } else if (node is InlineDirectiveNode) {
-        // Render directives as raw text by default (opt-in behavior via nodeBuilders)
-        childrenSpans.add(
-          TextSpan(
-            text: text.substring(node.start, node.end),
-            style: currentStyle,
-          ),
-        );
-        return TextSpan(children: childrenSpans);
-      }
+    if (shouldHideMarkers) {
+      // Case 1: List Items
+      if (parent is ListItemNode) {
+        final nodeText = node.text;
+        // Match the list marker at start of text (e.g., "- " or "* " or "+ ")
+        final markerMatch = RegExp(r'^([*+-])[ \t]+').firstMatch(nodeText);
+        if (markerMatch != null) {
+          final markerLength = markerMatch.end;
+          final markerText = nodeText.substring(0, markerLength);
+          final contentText = nodeText.substring(markerLength);
 
-      // shouldRevealSelf is already calculated above
+          // Create a replacement string of exact same length
+          // e.g. "- " -> "• "
+          // This preserves offsets for cursor navigation
+          final replacementText = '•${markerText.substring(1)}';
 
-      int currentPos = node.start;
-
-      for (final child in node.children) {
-        if (child.start > currentPos) {
-          final gapText = text.substring(currentPos, child.start);
-          if (isWysiwygMode && !shouldRevealSelf) {
-            // Zero-width rendering for control chars
-            childrenSpans.add(
+          return TextSpan(
+            children: [
+              // Render visible bullet replacement
               TextSpan(
-                text: gapText,
+                text: replacementText,
+                style: currentStyle.copyWith(color: Colors.grey.shade600),
+              ),
+              // Render remaining content normally
+              TextSpan(text: contentText, style: currentStyle),
+            ],
+          );
+        }
+      }
+
+      // Case 2: Headers
+      if (parent is HeaderNode) {
+        final nodeText = node.text;
+        // Match ATX header marker (e.g. "## ")
+        final markerMatch = RegExp(r'^(#{1,6})[ \t]+').firstMatch(nodeText);
+        if (markerMatch != null) {
+          final markerLength = markerMatch.end;
+          final markerText = nodeText.substring(0, markerLength);
+          final contentText = nodeText.substring(markerLength);
+
+          return TextSpan(
+            children: [
+              TextSpan(
+                text: markerText,
                 style: currentStyle.copyWith(
                   fontSize: 0,
                   color: Colors.transparent,
@@ -772,53 +851,25 @@ class MarkdownTextEditingController extends TextEditingController {
                   height: 0,
                 ),
               ),
-            );
-          } else {
-            // Normal mode OR revealed: show control chars in grey
-            childrenSpans.add(
-              TextSpan(
-                text: gapText,
-                style: currentStyle.copyWith(color: Colors.grey),
-              ),
-            );
-          }
-        }
-
-        childrenSpans.add(_renderNode(context, child, newStyle, node));
-        currentPos = child.end;
-      }
-
-      if (currentPos < node.end) {
-        final gapText = text.substring(currentPos, node.end);
-        if (isWysiwygMode && !shouldRevealSelf) {
-          // Zero-width rendering: control chars are present but invisible
-          childrenSpans.add(
-            TextSpan(
-              text: gapText,
-              style: currentStyle.copyWith(
-                fontSize: 0, // Truly zero-width
-                color: Colors.transparent,
-                letterSpacing: 0,
-                wordSpacing: 0,
-                height: 0,
-              ),
-            ),
-          );
-        } else {
-          // Normal mode OR revealed: show control chars in grey
-          childrenSpans.add(
-            TextSpan(
-              text: gapText,
-              style: currentStyle.copyWith(color: Colors.grey),
-            ),
+              TextSpan(text: contentText, style: currentStyle),
+            ],
           );
         }
       }
-
-      return TextSpan(children: childrenSpans);
     }
 
-    return const TextSpan(text: "");
+    return TextSpan(text: node.text, style: currentStyle);
+  }
+
+  /// Public entry point for rendering nodes.
+  /// Dispatches to the appropriate registered renderer.
+  InlineSpan _renderNode(
+    BuildContext context,
+    Node node,
+    TextStyle currentStyle,
+    Node? parent,
+  ) {
+    return _dispatchRender(context, node, currentStyle, parent);
   }
 
   // --- Block-Awareness Helpers ---
