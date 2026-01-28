@@ -52,7 +52,7 @@ void main() {
         if (child is TextSpan && child.text == 'suggestion') {
           foundGhostText = true;
           // Verify opacity
-          expect(child.style?.color?.opacity, closeTo(0.4, 0.01));
+          expect(child.style?.color?.a, closeTo(0.4, 0.01));
           return false; // stop visiting
         }
         return true;
@@ -88,7 +88,7 @@ void main() {
       span.visitChildren((child) {
         if (child is TextSpan && child.text == 'beautiful ') {
           foundGhostText = true;
-          expect(child.style?.color?.opacity, closeTo(0.4, 0.01));
+          expect(child.style?.color?.a, closeTo(0.4, 0.01));
           return false;
         }
         return true;
