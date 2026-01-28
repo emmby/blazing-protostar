@@ -133,6 +133,7 @@ Detailed specifications are in the `docs/` directory:
 -   [Toolbar Customization](docs/toolbar.md) - How to customize the toolbar.
 -   [Directives Usage](docs/directives.md) - Custom widget guide.
 -   [Autocomplete](docs/autocomplete.md) - Ghost text API guide.
+-   [Custom Rendering](docs/custom_rendering.md) - Override rendering for any markdown element.
 
 ## 🧪 Testing
 
