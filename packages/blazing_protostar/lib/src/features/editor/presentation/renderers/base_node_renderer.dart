@@ -5,26 +5,45 @@ import 'package:flutter/material.dart';
 /// Base class for all node renderers.
 ///
 /// Uses the Template Method pattern to dispatch between WYSIWYG and Raw modes.
-/// Subclasses implement renderWysiwyg() and renderRaw() instead of render().
+/// Subclasses implement [renderWysiwyg] and [renderRaw] instead of [render].
 abstract class BaseNodeRenderer {
   const BaseNodeRenderer();
 
   /// Main entry point - dispatches to appropriate mode based on WYSIWYG state.
   ///
-  /// This is a template method that calls either renderWysiwyg() or renderRaw()
+  /// This is a template method that calls either [renderWysiwyg] or [renderRaw]
   /// based on the mode and reveal state.
+  ///
+  /// **WARNING: You MUST preserve character count.**
+  /// The total length of the returned span (plus any hidden markers)
+  /// must equal `expectedLength` (which is `node.end - node.start`).
   InlineSpan render(
     BuildContext context,
     Node node,
     TextStyle style,
     bool isRevealed,
+    int expectedLength,
     RenderContext renderContext, {
     Node? parent,
   }) {
     if (renderContext.isWysiwygMode && !isRevealed) {
-      return renderWysiwyg(context, node, style, renderContext, parent: parent);
+      return renderWysiwyg(
+        context,
+        node,
+        style,
+        expectedLength,
+        renderContext,
+        parent: parent,
+      );
     } else {
-      return renderRaw(context, node, style, renderContext, parent: parent);
+      return renderRaw(
+        context,
+        node,
+        style,
+        expectedLength,
+        renderContext,
+        parent: parent,
+      );
     }
   }
 
@@ -32,10 +51,15 @@ abstract class BaseNodeRenderer {
   ///
   /// Called when WYSIWYG mode is enabled and the node is not revealed
   /// (cursor not near this node).
+  ///
+  /// **WARNING: You MUST preserve character count.**
+  /// The total length of the returned span (plus any hidden markers)
+  /// must equal `expectedLength` (which is `node.end - node.start`).
   InlineSpan renderWysiwyg(
     BuildContext context,
     Node node,
     TextStyle style,
+    int expectedLength,
     RenderContext renderContext, {
     Node? parent,
   });
@@ -44,13 +68,23 @@ abstract class BaseNodeRenderer {
   ///
   /// Called when WYSIWYG mode is disabled OR the node is revealed
   /// (cursor near this node in Edit mode).
+  ///
+  /// **WARNING: You MUST preserve character count.**
+  /// The total length of the returned span must equal `expectedLength` (which is `node.end - node.start`).
   InlineSpan renderRaw(
     BuildContext context,
     Node node,
     TextStyle style,
+    int expectedLength,
     RenderContext renderContext, {
     Node? parent,
   });
+
+  /// The expected character count for this [node].
+  ///
+  /// Calculated as `node.end - node.start`. Your renderer output must
+  /// have an [InlineSpan] tree with this total logical length.
+  int nodeLength(Node node) => node.end - node.start;
 
   /// Helper: Renders control characters (gap text) appropriately for the mode.
   ///

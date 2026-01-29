@@ -233,6 +233,61 @@ nodeBuilders: {
 }
 ```
 
+## Length Invariance Rule
+
+> [!CAUTION]
+> **CRITICAL RULE**: The total number of logical characters in the `InlineSpan` tree returned by a renderer MUST exactly match the number of characters in the source AST node (`node.end - node.start`).
+
+Flutter's `TextField` cursor positioning, selection, and scrolling logic rely on a 1:1 mapping between character offsets in the `text` and visual locations in the rendered output. If a renderer "leaks" or "shrinks" characters, the cursor will become misaligned, making the editor difficult to use.
+
+### The Mapping Table
+
+| Span Type | Logical Length |
+| :--- | :--- |
+| `TextSpan.text` | `text.length` |
+| `WidgetSpan` | **1** (Flutter Engine requirement) |
+| `children` | Sum of logical lengths of all children |
+
+### Strict Enforcement
+
+Blazing Protostar strictly enforces this rule at runtime. If a renderer returns a span with an incorrect length, the controller will throw a `StateError` pinpointing the offending node type and content.
+
+### Correcting Length Mismatch
+
+#### 1. Replacing text with a Widget
+If you replace a 10-character node with a single `WidgetSpan`, you must provide the missing 9 characters. The standard way is to wrap the widget and the remaining characters in a `TextSpan` and hide the extra characters.
+
+```dart
+// WRONG (Length 1, expects 10)
+return WidgetSpan(child: MyChip());
+
+// CORRECT (Length 10, expects 10)
+return TextSpan(
+  children: [
+    WidgetSpan(child: MyChip()),
+    // Provide 9 hidden characters to preserve alignment
+    TextSpan(
+      text: '\u200b' * 9, // Zero Width Spaces
+      style: TextStyle(fontSize: 0),
+    ),
+  ],
+);
+```
+
+#### 2. Hiding markers
+When hiding markdown markers (like `# ` or `**`), do not simply omit them. Instead, render them with `fontSize: 0` or transparent color so they still occupy logical "space" in the text stream.
+
+```dart
+// Use style to hide characters while preserving length
+TextSpan(
+  text: '# ',
+  style: style.copyWith(
+    fontSize: 0,
+    color: Colors.transparent,
+  ),
+);
+```
+
 ## Edit Mode vs View Mode
 
 The `isRevealed` parameter enables different rendering based on cursor position. This integrates with the [WYSIWYG Mode](v003_wysiwyg.md) to provide seamless Edit/View transitions.

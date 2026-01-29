@@ -12,6 +12,7 @@ class EscapeNodeRenderer extends BaseNodeRenderer {
     BuildContext context,
     Node node,
     TextStyle style,
+    int expectedLength,
     RenderContext renderContext, {
     Node? parent,
   }) {
@@ -23,6 +24,7 @@ class EscapeNodeRenderer extends BaseNodeRenderer {
     BuildContext context,
     Node node,
     TextStyle style,
+    int expectedLength,
     RenderContext renderContext, {
     Node? parent,
   }) {

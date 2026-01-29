@@ -7,11 +7,13 @@ import 'package:blazing_protostar/src/features/editor/domain/models/node.dart';
 /// [node] is the AST node being rendered (e.g. HeaderNode, BoldNode).
 /// [style] is the base text style that would have been applied.
 /// [isRevealed] is true if the cursor is near/inside this node (Edit Mode).
+/// [expectedLength] is the expected character count for this node (node.end - node.start).
 typedef NodeRenderer =
     InlineSpan Function(
       BuildContext context,
       Node node,
       TextStyle style,
-      bool isRevealed, [
+      bool isRevealed,
+      int expectedLength, [
       Node? parent,
     ]);

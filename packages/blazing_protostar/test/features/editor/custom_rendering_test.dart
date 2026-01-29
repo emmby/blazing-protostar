@@ -1,7 +1,6 @@
 import 'package:blazing_protostar/blazing_protostar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:blazing_protostar/src/features/editor/domain/models/node.dart'; // For TextNode
 
 void main() {
   group('Custom Rendering', () {
@@ -11,18 +10,19 @@ void main() {
       final controller = MarkdownTextEditingController(
         text: '# Hello',
         nodeBuilders: {
-          HeaderNode: (context, node, style, isRevealed, [parent]) {
-            final header = node as HeaderNode;
-            final text = header.children
-                .whereType<TextNode>()
-                .map((e) => e.text)
-                .join();
+          HeaderNode:
+              (context, node, style, isRevealed, expectedLength, [parent]) {
+                final header = node as HeaderNode;
+                final text = header.children
+                    .whereType<TextNode>()
+                    .map((e) => e.text)
+                    .join();
 
-            return TextSpan(
-              text: text,
-              style: style.copyWith(color: Colors.red),
-            );
-          },
+                return TextSpan(
+                  text: text,
+                  style: style.copyWith(color: Colors.red),
+                );
+              },
         },
       );
 
@@ -98,14 +98,23 @@ void main() {
       final controller = MarkdownTextEditingController(
         text: '**Bold**',
         nodeBuilders: {
-          BoldNode: (context, node, style, isRevealed, [parent]) {
-            return WidgetSpan(
-              child: Container(
-                color: Colors.yellow,
-                child: Text('Custom Bold'),
-              ),
-            );
-          },
+          BoldNode:
+              (context, node, style, isRevealed, expectedLength, [parent]) {
+                return TextSpan(
+                  children: [
+                    WidgetSpan(
+                      child: Container(
+                        color: Colors.yellow,
+                        child: Text('Custom Bold'),
+                      ),
+                    ),
+                    TextSpan(
+                      text: '\u200b' * (node.end - node.start - 1),
+                      style: const TextStyle(fontSize: 0),
+                    ),
+                  ],
+                );
+              },
         },
       );
 
@@ -143,10 +152,13 @@ void main() {
       final controller = MarkdownTextEditingController(
         text: '# Header',
         nodeBuilders: {
-          HeaderNode: (context, node, style, isRevealed, [parent]) {
-            capturedIsRevealed = isRevealed;
-            return TextSpan(text: 'Rendered');
-          },
+          HeaderNode:
+              (context, node, style, isRevealed, expectedLength, [parent]) {
+                capturedIsRevealed = isRevealed;
+                // Source: '# Header' (length 8)
+                // 'Rendered' (length 8) - matches!
+                return TextSpan(text: 'Rendered');
+              },
         },
       );
 

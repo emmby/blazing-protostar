@@ -10,19 +10,30 @@ void main() {
     final controller = MarkdownTextEditingController(
       text: 'Hello :test[User](123)',
       nodeBuilders: {
-        InlineDirectiveNode: (context, node, style, isRevealed, [parent]) {
-          final directive = node as InlineDirectiveNode;
-          return WidgetSpan(
-            child: Container(
-              color: Colors.red,
-              padding: const EdgeInsets.all(4),
-              child: Text(
-                'Directive: ${directive.name} content: ${directive.children.map((c) => (c as TextNode).text).join()}',
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
-          );
-        },
+        InlineDirectiveNode:
+            (context, node, style, isRevealed, expectedLength, [parent]) {
+              final directive = node as InlineDirectiveNode;
+              return TextSpan(
+                children: [
+                  WidgetSpan(
+                    child: Container(
+                      color: Colors.red,
+                      padding: const EdgeInsets.all(4),
+                      child: Text(
+                        'Directive: ${directive.name} content: ${directive.children.map((c) => (c as TextNode).text).join()}',
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                  // Preserve length: source is ":test[User](123)" (16 chars)
+                  // WidgetSpan is 1 char, so we need 15 hidden chars.
+                  TextSpan(
+                    text: '\u200b' * (node.end - node.start - 1),
+                    style: const TextStyle(fontSize: 0),
+                  ),
+                ],
+              );
+            },
       },
     );
 

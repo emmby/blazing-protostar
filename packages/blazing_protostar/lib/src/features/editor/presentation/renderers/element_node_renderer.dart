@@ -14,6 +14,7 @@ class ElementNodeRenderer extends BaseNodeRenderer {
     BuildContext context,
     Node node,
     TextStyle style,
+    int expectedLength,
     RenderContext renderContext, {
     Node? parent,
   }) {
@@ -25,6 +26,7 @@ class ElementNodeRenderer extends BaseNodeRenderer {
     BuildContext context,
     Node node,
     TextStyle style,
+    int expectedLength,
     RenderContext renderContext, {
     Node? parent,
   }) {

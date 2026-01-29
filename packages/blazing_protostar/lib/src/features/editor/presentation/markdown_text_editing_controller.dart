@@ -458,14 +458,40 @@ class MarkdownTextEditingController extends TextEditingController {
     }
 
     // 3. If ghost text exists, inject it at cursor position
+    final TextSpan finalSpan;
     if (_ghostText != null &&
         _ghostText!.isNotEmpty &&
         selection.isValid &&
         selection.isCollapsed) {
-      return _injectGhostText(context, baseSpan, style);
+      finalSpan = _injectGhostText(context, baseSpan, style);
+    } else {
+      finalSpan = baseSpan;
     }
 
-    return baseSpan;
+    // 4. Final safety check: Length Invariance Rule
+    // Each character in the controller text MUST have a corresponding character
+    // in the rendered InlineSpan tree (where WidgetSpan counts as 1).
+    // Note: Ghost text is injected and increases the span length.
+    final totalSpanLength = _calculateSpanLength(finalSpan);
+    final expectedTotalLength =
+        text.length +
+        ((_ghostText != null &&
+                _ghostText!.isNotEmpty &&
+                selection.isValid &&
+                selection.isCollapsed)
+            ? _ghostText!.length
+            : 0);
+
+    if (totalSpanLength != expectedTotalLength) {
+      throw StateError(
+        'Renderer length mismatch! Controller text has ${text.length} chars, '
+        'ghost text has ${expectedTotalLength - text.length} chars, '
+        'but rendered InlineSpan has $totalSpanLength. This will cause '
+        'cursor positioning issues. Ensure all renderers preserve length.',
+      );
+    }
+
+    return finalSpan;
   }
 
   /// Injects ghost text at the cursor position by walking the TextSpan tree.
@@ -582,19 +608,22 @@ class MarkdownTextEditingController extends TextEditingController {
     return span;
   }
 
-  /// Calculates the total text length of a TextSpan (including children).
-  int _calculateSpanLength(TextSpan span) {
-    int length = span.text?.length ?? 0;
-
-    if (span.children != null) {
-      for (final child in span.children!) {
-        if (child is TextSpan) {
+  /// Calculates the total text length of an InlineSpan (including children).
+  /// TextSpan counts its text length, while PlaceholderSpan (WidgetSpan) counts as 1.
+  int _calculateSpanLength(InlineSpan span) {
+    if (span is TextSpan) {
+      int length = span.text?.length ?? 0;
+      if (span.children != null) {
+        for (final child in span.children!) {
           length += _calculateSpanLength(child);
         }
       }
+      return length;
+    } else if (span is PlaceholderSpan) {
+      // WidgetSpan and other PlaceholderSpans are treated as length 1 by Flutter
+      return 1;
     }
-
-    return length;
+    return 0;
   }
 
   /// Checks if the node should be revealed based on cursor proximity.
@@ -624,134 +653,152 @@ class MarkdownTextEditingController extends TextEditingController {
     // Return map with renderer calls that will receive context at render time
     // We'll wrap these to inject the RenderContext dynamically
     return {
-      HeaderNode: (context, node, style, isRevealed, [parent]) {
+      HeaderNode: (context, node, style, isRevealed, expectedLength, [parent]) {
         final renderContext = _createRenderContext(context);
         return headerRenderer.render(
           context,
           node,
           style,
           isRevealed,
+          expectedLength,
           renderContext,
           parent: parent,
         );
       },
-      BoldNode: (context, node, style, isRevealed, [parent]) {
+      BoldNode: (context, node, style, isRevealed, expectedLength, [parent]) {
         final renderContext = _createRenderContext(context);
         return boldRenderer.render(
           context,
           node,
           style,
           isRevealed,
+          expectedLength,
           renderContext,
           parent: parent,
         );
       },
-      ItalicNode: (context, node, style, isRevealed, [parent]) {
+      ItalicNode: (context, node, style, isRevealed, expectedLength, [parent]) {
         final renderContext = _createRenderContext(context);
         return italicRenderer.render(
           context,
           node,
           style,
           isRevealed,
+          expectedLength,
           renderContext,
           parent: parent,
         );
       },
-      LinkNode: (context, node, style, isRevealed, [parent]) {
+      LinkNode: (context, node, style, isRevealed, expectedLength, [parent]) {
         final renderContext = _createRenderContext(context);
         return linkRenderer.render(
           context,
           node,
           style,
           isRevealed,
+          expectedLength,
           renderContext,
           parent: parent,
         );
       },
-      EscapeNode: (context, node, style, isRevealed, [parent]) {
+      EscapeNode: (context, node, style, isRevealed, expectedLength, [parent]) {
         final renderContext = _createRenderContext(context);
         return escapeRenderer.render(
           context,
           node,
           style,
           isRevealed,
+          expectedLength,
           renderContext,
           parent: parent,
         );
       },
-      InlineDirectiveNode: (context, node, style, isRevealed, [parent]) {
-        final renderContext = _createRenderContext(context);
-        return directiveRenderer.render(
-          context,
-          node,
-          style,
-          isRevealed,
-          renderContext,
-          parent: parent,
-        );
-      },
-      ParagraphNode: (context, node, style, isRevealed, [parent]) {
-        final renderContext = _createRenderContext(context);
-        return elementRenderer.render(
-          context,
-          node,
-          style,
-          isRevealed,
-          renderContext,
-          parent: parent,
-        );
-      },
-      UnorderedListNode: (context, node, style, isRevealed, [parent]) {
-        final renderContext = _createRenderContext(context);
-        return elementRenderer.render(
-          context,
-          node,
-          style,
-          isRevealed,
-          renderContext,
-          parent: parent,
-        );
-      },
-      OrderedListNode: (context, node, style, isRevealed, [parent]) {
-        final renderContext = _createRenderContext(context);
-        return elementRenderer.render(
-          context,
-          node,
-          style,
-          isRevealed,
-          renderContext,
-          parent: parent,
-        );
-      },
-      ListItemNode: (context, node, style, isRevealed, [parent]) {
-        final renderContext = _createRenderContext(context);
-        return elementRenderer.render(
-          context,
-          node,
-          style,
-          isRevealed,
-          renderContext,
-          parent: parent,
-        );
-      },
-      DocumentNode: (context, node, style, isRevealed, [parent]) {
-        final renderContext = _createRenderContext(context);
-        return elementRenderer.render(
-          context,
-          node,
-          style,
-          isRevealed,
-          renderContext,
-          parent: parent,
-        );
-      },
-      TextNode: (context, node, style, isRevealed, [parent]) {
+      InlineDirectiveNode:
+          (context, node, style, isRevealed, expectedLength, [parent]) {
+            final renderContext = _createRenderContext(context);
+            return directiveRenderer.render(
+              context,
+              node,
+              style,
+              isRevealed,
+              expectedLength,
+              renderContext,
+              parent: parent,
+            );
+          },
+      ParagraphNode:
+          (context, node, style, isRevealed, expectedLength, [parent]) {
+            final renderContext = _createRenderContext(context);
+            return elementRenderer.render(
+              context,
+              node,
+              style,
+              isRevealed,
+              expectedLength,
+              renderContext,
+              parent: parent,
+            );
+          },
+      UnorderedListNode:
+          (context, node, style, isRevealed, expectedLength, [parent]) {
+            final renderContext = _createRenderContext(context);
+            return elementRenderer.render(
+              context,
+              node,
+              style,
+              isRevealed,
+              expectedLength,
+              renderContext,
+              parent: parent,
+            );
+          },
+      OrderedListNode:
+          (context, node, style, isRevealed, expectedLength, [parent]) {
+            final renderContext = _createRenderContext(context);
+            return elementRenderer.render(
+              context,
+              node,
+              style,
+              isRevealed,
+              expectedLength,
+              renderContext,
+              parent: parent,
+            );
+          },
+      ListItemNode:
+          (context, node, style, isRevealed, expectedLength, [parent]) {
+            final renderContext = _createRenderContext(context);
+            return elementRenderer.render(
+              context,
+              node,
+              style,
+              isRevealed,
+              expectedLength,
+              renderContext,
+              parent: parent,
+            );
+          },
+      DocumentNode:
+          (context, node, style, isRevealed, expectedLength, [parent]) {
+            final renderContext = _createRenderContext(context);
+            return elementRenderer.render(
+              context,
+              node,
+              style,
+              isRevealed,
+              expectedLength,
+              renderContext,
+              parent: parent,
+            );
+          },
+      TextNode: (context, node, style, isRevealed, expectedLength, [parent]) {
         final renderContext = _createRenderContext(context);
         return textRenderer.render(
           context,
           node,
           style,
           isRevealed,
+          expectedLength,
           renderContext,
           parent: parent,
         );
@@ -781,9 +828,30 @@ class MarkdownTextEditingController extends TextEditingController {
     // Look up renderer for this node type
     final shouldRevealSelf = _shouldRevealNode(node);
     final renderer = _nodeRenderers[node.runtimeType];
+    final expectedLength = node.end - node.start;
 
     if (renderer != null) {
-      return renderer(context, node, currentStyle, shouldRevealSelf, parent);
+      final span = renderer(
+        context,
+        node,
+        currentStyle,
+        shouldRevealSelf,
+        expectedLength,
+        parent,
+      );
+
+      // Validate that this specific renderer preserved the node's length
+      final actualLength = _calculateSpanLength(span);
+      if (actualLength != expectedLength) {
+        throw StateError(
+          'Renderer for ${node.runtimeType} returned a span of length $actualLength, '
+          'but the source node has length $expectedLength. '
+          'Content: "${text.substring(node.start, node.end)}". '
+          'All renderers MUST preserve the exact character count of the source node.',
+        );
+      }
+
+      return span;
     }
 
     // Fallback for unknown node types
