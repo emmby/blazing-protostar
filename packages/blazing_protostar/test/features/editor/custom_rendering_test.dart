@@ -60,20 +60,6 @@ void main() {
       // which should be in the children
       expect(span.children, isNotNull);
 
-      // Debug: Print the structure
-      print('Root span: ${span.toPlainText()}');
-      print('Children count: ${span.children?.length}');
-      for (var i = 0; i < (span.children?.length ?? 0); i++) {
-        final child = span.children![i];
-        if (child is TextSpan) {
-          print(
-            '  Child $i: TextSpan(text="${child.text}", color=${child.style?.color})',
-          );
-        } else {
-          print('  Child $i: ${child.runtimeType}');
-        }
-      }
-
       expect(span.children!.length, greaterThan(0));
 
       // Our custom renderer was called for HeaderNode and returned a red TextSpan
