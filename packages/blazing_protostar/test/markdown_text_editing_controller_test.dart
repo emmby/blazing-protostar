@@ -64,4 +64,41 @@ void main() {
     controller.insertAtCursor('Test');
     expect(controller.text, 'Hello'); // No change
   });
+
+  test(
+    'value setter handles text replacement with different length without error',
+    () {
+      final controller = MarkdownTextEditingController(text: 'short');
+      controller.selection = const TextSelection.collapsed(offset: 5);
+
+      // Replace with longer text - this would trigger the bug before the fix
+      controller.value = controller.value.copyWith(
+        text: 'much longer text here',
+        selection: const TextSelection.collapsed(offset: 21),
+      );
+
+      expect(controller.text, 'much longer text here');
+      expect(controller.selection.baseOffset, 21);
+    },
+  );
+
+  test(
+    'value setter handles shorter replacement text without assertion error',
+    () {
+      final controller = MarkdownTextEditingController(
+        text: ':child[target-uuid-123]',
+      );
+      controller.selection = const TextSelection.collapsed(offset: 23);
+
+      // Simulate autocomplete replacement with different length
+      // This triggers backend.delete() -> notifyListeners() -> _onBackendChanged()
+      controller.value = controller.value.copyWith(
+        text: ':child[Tar',
+        selection: const TextSelection.collapsed(offset: 10),
+      );
+
+      expect(controller.text, ':child[Tar');
+      expect(controller.selection.baseOffset, 10);
+    },
+  );
 }

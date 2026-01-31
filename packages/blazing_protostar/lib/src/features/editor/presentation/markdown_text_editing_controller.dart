@@ -26,6 +26,23 @@ class MarkdownTextEditingController extends TextEditingController {
   /// Flag to prevent re-entrancy when applying remote updates.
   bool _isApplyingRemoteUpdate = false;
 
+  /// Flag to prevent re-entrant notifications during delta application.
+  ///
+  /// When `value=` is called, we first set `super.value = newValue` (controller
+  /// has correct final state), then call `_applyDeltaToBackend()` to sync TO
+  /// the backend. The backend's delete()/insert() calls `notifyListeners()`
+  /// synchronously, which would fire `_onBackendChanged()` mid-operation.
+  ///
+  /// Skipping `_onBackendChanged` during local writes is safe because:
+  /// 1. The controller already has the correct final value
+  /// 2. We're pushing that value TO the backend, not reading FROM it
+  /// 3. `_onBackendChanged` syncs FROM backend TO controller (for remote updates)
+  ///    — there's nothing useful for it to do during our own local write
+  ///
+  /// No data loss occurs: both controller and backend end up with the correct
+  /// final state after delta application completes.
+  bool _isApplyingDelta = false;
+
   /// The internal list of blocks that make up the document.
   /// This is the source of truth for structured sync (CRDT).
   List<MarkdownBlock> _blocks = [];
@@ -65,6 +82,9 @@ class MarkdownTextEditingController extends TextEditingController {
   }
 
   void _onBackendChanged() {
+    // Skip if we're in the middle of applying a delta (prevents re-entrancy)
+    if (_isApplyingDelta) return;
+
     // Sync text from backend to controller (remote update)
     if (value.text != _backend.text) {
       _isApplyingRemoteUpdate = true;
@@ -85,7 +105,12 @@ class MarkdownTextEditingController extends TextEditingController {
     // Only update backend if this is a LOCAL change
     if (newValue.text != oldText && !_isApplyingRemoteUpdate) {
       _blocks = _splitIntoBlocks(newValue.text);
-      _applyDeltaToBackend(oldText, newValue.text);
+      _isApplyingDelta = true;
+      try {
+        _applyDeltaToBackend(oldText, newValue.text);
+      } finally {
+        _isApplyingDelta = false;
+      }
     }
   }
 
